@@ -8,33 +8,25 @@
 
 (ns clojure.data.xml.parse
   (:require
-   [clojure.data.xml.event
-    :refer [->CharsEvent ->CommentEvent ->EndElementEvent ->StartElementEvent]]
-   [clojure.data.xml.impl :refer [static-case]]
    [clojure.data.xml.name :refer [qname]]
-   [clojure.data.xml.pu-map :as pu]
-   [clojure.string :as str])
+   [clojure.data.xml.pu-map :as pu])
   (:import
    (java.io InputStream Reader)
-   (javax.xml.stream XMLInputFactory XMLStreamConstants XMLStreamReader)))
+   (javax.xml.stream XMLInputFactory XMLStreamReader)))
 
 (def ^{:private true} input-factory-props
-  {:allocator XMLInputFactory/ALLOCATOR
-   :coalescing XMLInputFactory/IS_COALESCING
-   :namespace-aware XMLInputFactory/IS_NAMESPACE_AWARE
-   :replacing-entity-references XMLInputFactory/IS_REPLACING_ENTITY_REFERENCES
+  {:allocator                    XMLInputFactory/ALLOCATOR
+   :coalescing                   XMLInputFactory/IS_COALESCING
+   :namespace-aware              XMLInputFactory/IS_NAMESPACE_AWARE
+   :replacing-entity-references  XMLInputFactory/IS_REPLACING_ENTITY_REFERENCES
    :supporting-external-entities XMLInputFactory/IS_SUPPORTING_EXTERNAL_ENTITIES
-   :validating XMLInputFactory/IS_VALIDATING
-   :reporter XMLInputFactory/REPORTER
-   :resolver XMLInputFactory/RESOLVER
-   :support-dtd XMLInputFactory/SUPPORT_DTD})
+   :validating                   XMLInputFactory/IS_VALIDATING
+   :reporter                     XMLInputFactory/REPORTER
+   :resolver                     XMLInputFactory/RESOLVER
+   :support-dtd                  XMLInputFactory/SUPPORT_DTD})
 
-(defn- attr-prefix [^XMLStreamReader sreader index]
-  (let [p (.getAttributePrefix sreader index)]
-    (when-not (str/blank? p)
-      p)))
-
-(defn- attr-hash [^XMLStreamReader sreader]
+(defn- attr-hash
+  [^XMLStreamReader sreader]
   (persistent!
    (reduce (fn [tr i]
              (assoc! tr (qname (.getAttributeNamespace sreader i)
@@ -44,7 +36,8 @@
            (transient {})
            (range (.getAttributeCount sreader)))))
 
-(defn- nss-hash [^XMLStreamReader sreader parent-hash]
+(defn- nss-hash
+  [^XMLStreamReader sreader parent-hash]
   (pu/persistent!
    (reduce (fn [tr ^long i]
              (pu/assoc! tr
@@ -57,75 +50,87 @@
   [^XMLStreamReader sreader]
   (when-let [location (.getLocation sreader)]
     {:character-offset (.getCharacterOffset location)
-     :column-number (.getColumnNumber location)
-     :line-number (.getLineNumber location)}))
+     :column-number    (.getColumnNumber location)
+     :line-number      (.getLineNumber location)}))
 
-; Note, sreader is mutable and mutated here in pull-seq, but it's
-; protected by a lazy-seq so it's thread-safe.
 (defn pull-seq
-  "Creates a seq of events.  The XMLStreamConstants/SPACE clause below doesn't seem to
-   be triggered by the JDK StAX parser, but is by others.  Leaving in to be more complete."
+  "Creates a seq of events."
   [^XMLStreamReader sreader {:keys [include-node? location-info skip-whitespace] :as opts} ns-envs]
+  ;; Note, sreader is mutable and mutated here in pull-seq, but it's protected
+  ;; by a lazy-seq so it's thread-safe.
   (lazy-seq
    (loop []
-     (let [location (when location-info
-                      (location-hash sreader))]
-       (static-case
-         (.next sreader)
-         XMLStreamConstants/START_ELEMENT
+     (let [location (when location-info (location-hash sreader))]
+       (condp = (and (.hasNext sreader) (.next sreader))
+         XMLStreamReader/START_ELEMENT
          (if (include-node? :element)
-           (let [ns-env (nss-hash sreader (or (first ns-envs) pu/EMPTY))
-                 tag (qname (.getNamespaceURI sreader)
-                            (.getLocalName sreader)
-                            (.getPrefix sreader))
-                 attrs (attr-hash sreader)
-                 next-events (pull-seq sreader opts (cons ns-env ns-envs))]
-             ;; Can't emit EmptyElementEvent here, since
-             ;; for seq-tree node and exit? are mutually exclusive
-             (cons (->StartElementEvent tag attrs ns-env location)
-                   next-events))
+           (let [ns-env (nss-hash sreader (or (first ns-envs) pu/EMPTY))]
+             (cons
+              (with-meta
+                {:tag   (qname (.getNamespaceURI sreader)
+                               (.getLocalName sreader)
+                               (.getPrefix sreader))
+                 :attrs (attr-hash sreader)}
+                {:clojure.data.xml/event    :start
+                 :clojure.data.xml/location location
+                 :clojure.data.xml/nss      ns-env})
+              (pull-seq sreader opts (cons ns-env ns-envs))))
            (recur))
-         XMLStreamConstants/END_ELEMENT
+         XMLStreamReader/END_ELEMENT
          (if (include-node? :element)
-           (do (assert (seq ns-envs) "Balanced end")
-               (cons (->EndElementEvent)
-                     (pull-seq sreader opts (rest ns-envs))))
+           (cons
+            (with-meta
+              {}
+              {:clojure.data.xml/event    :end
+               :clojure.data.xml/location location})
+            (pull-seq sreader opts (rest ns-envs)))
            (recur))
-         XMLStreamConstants/CHARACTERS
+         XMLStreamReader/CHARACTERS
          (if-let [text (and (include-node? :characters)
-                            (not (and skip-whitespace
-                                      (.isWhiteSpace sreader)))
+                            (not (and skip-whitespace (.isWhiteSpace sreader)))
                             (.getText sreader))]
            (if (zero? (.length ^CharSequence text))
              (recur)
-             (cons (->CharsEvent text)
-                   (pull-seq sreader opts ns-envs)))
+             (cons
+              (with-meta
+                {:content [text]}
+                {:clojure.data.xml/event    :chars
+                 :clojure.data.xml/location location})
+              (pull-seq sreader opts ns-envs)))
            (recur))
-         XMLStreamConstants/COMMENT
+         XMLStreamReader/COMMENT
          (if (include-node? :comment)
-           (cons (->CommentEvent (.getText sreader))
-                 (pull-seq sreader opts ns-envs))
+           (cons
+            (with-meta
+              {:tag     :-comment
+               :content [(.getText sreader)]}
+              {:clojure.data.xml/event    :comment
+               :clojure.data.xml/location location})
+            (pull-seq sreader opts ns-envs))
            (recur))
-         XMLStreamConstants/END_DOCUMENT
+         ;; end of stream
+         false
          nil
          ;; Consume and ignore comments, spaces, processing instructions etc
          (recur))))))
 
-(defn- make-input-factory ^XMLInputFactory [props]
+(defn- make-input-factory ^XMLInputFactory
+  [props]
   (let [fac (XMLInputFactory/newInstance)]
     (doseq [[k v] props
             :when (contains? input-factory-props k)
-            :let [prop (input-factory-props k)]]
+            :let  [prop (input-factory-props k)]]
       (.setProperty fac prop v))
     fac))
 
-(defn make-stream-reader [props source]
+(defn make-stream-reader
+  [props source]
   (let [fac (make-input-factory props)]
     (cond
-      (instance? Reader source) (.createXMLStreamReader fac ^Reader source)
+      (instance? Reader source)      (.createXMLStreamReader fac ^Reader source)
       (instance? InputStream source) (.createXMLStreamReader fac ^InputStream source)
-      :else (throw (IllegalArgumentException.
-                     "source should be java.io.Reader or java.io.InputStream")))))
+      :else                          (throw (IllegalArgumentException.
+                                             "source should be java.io.Reader or java.io.InputStream")))))
 
 (defn string-source [s]
   (java.io.StringReader. s))

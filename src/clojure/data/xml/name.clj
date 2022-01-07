@@ -8,20 +8,23 @@
 
 (ns clojure.data.xml.name
   (:require
-   [clojure.data.xml.protocols :as protocols :refer [AsQName]]
    [clojure.string :as str])
   (:import
    (clojure.lang Keyword Namespace)
    (java.net URLDecoder URLEncoder)
    (javax.xml.namespace QName)))
 
+(def ^QName parse-qname
+  (memoize (fn [s] (QName/valueOf s))))
+
+(defprotocol AsQName
+  (qname-local [qname] "Get the name for this qname")
+  (qname-uri   [qname] "Get the namespace uri for this qname"))
+
 (extend-protocol AsQName
   QName
   (qname-local [qname] (.getLocalPart qname))
   (qname-uri   [qname] (.getNamespaceURI qname)))
-
-(def ^QName parse-qname
-  (memoize (fn [s] (QName/valueOf s))))
 
 (extend-protocol AsQName
   String
@@ -45,19 +48,6 @@
       (subs du 6)
       (throw (ex-info "Uri symbol not valid" {:sym ss})))))
 
-;; protocol functions can be redefined by extend-*, so we wrap
-;; protocols/qname-uri protocols/qname-local within regular fns
-
-(defn qname-uri
-  "Get the namespace uri for this qname"
-  [v]
-  (protocols/qname-uri v))
-
-(defn qname-local
-  "Get the name for this qname"
-  [v]
-  (protocols/qname-local v))
-
 (defn qname
   ([local]
    (qname "" local))
@@ -78,7 +68,8 @@
     (keyword? ns)            (name ns)
     :else                    (str ns)))
 
-;; xmlns attributes get special treatment. they go into metadata, don't contribute to equality
+;; xmlns attributes get special treatment. they go into metadata, don't
+;; contribute to equality
 (def xmlns-uri
   "http://www.w3.org/2000/xmlns/")
 
@@ -159,8 +150,8 @@
             {:attempted-mapping {:prefix prefix :uri uri}}))))
 
 (defn separate-xmlns
-  "Call cont with two args: attributes and xmlns attributes"
-  [attrs cont]
+  "Separates xmlns attributes from other attributes"
+  [attrs]
   (loop [attrs*          (transient {})
          xmlns*          (transient {})
          [qn :as attrs'] (keys attrs)]
@@ -175,7 +166,7 @@
           (recur (assoc! attrs* qn val)
                  xmlns*
                  (next attrs'))))
-      (cont (persistent! attrs*) (persistent! xmlns*)))))
+      [(persistent! attrs*) (persistent! xmlns*)])))
 
 
 (def ^:private ^"[C" prefix-alphabet

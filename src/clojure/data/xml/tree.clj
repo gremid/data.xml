@@ -7,9 +7,8 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns clojure.data.xml.tree
-  (:require
-   [clojure.data.xml.event :refer [event-element event-exit? event-node]]
-   [clojure.data.xml.protocols :refer [gen-event next-events]]))
+  (:require [clojure.data.xml.name :refer [separate-xmlns]]
+            [clojure.data.xml.pu-map :as pu]))
 
 (defn seq-tree
   "Takes a seq of events that logically represents
@@ -47,9 +46,49 @@
              (cons (cons (node event) (lazy-seq (first tree)))
                    (lazy-seq (rest tree))))))))))
 
-;; # Break circular dependency of emitter-parser common infrastructure
-
 ;; "Parse" events off the in-memory representation
+
+(defn element->first-event
+  [{:keys [attrs content] :as node}]
+  (let [[attrs' xmlns-attrs] (separate-xmlns attrs)]
+    (-> node
+        (assoc :attrs attrs')
+        (vary-meta assoc :clojure.data.xml/event
+                   (if (seq content) :start :empty))
+        (vary-meta update :clojure.data.xml/nss
+                   pu/merge-prefix-map xmlns-attrs))))
+
+(defn node->first-event
+  [node]
+  (cond
+    (string? node)     (with-meta
+                         {:content [node]}
+                         {:clojure.data.xml/event :chars})
+    (sequential? node) (node->first-event (first node))
+    :else              (condp = (node :tag)
+                         :-comment (vary-meta node assoc
+                                              :clojure.data.xml/event :comment)
+                         :-cdata   (vary-meta node assoc
+                                              :clojure.data.xml/event :cdata)
+                         (element->first-event node))))
+
+(defn element->rest-events
+  [{:keys [content] :as node} next-nodes]
+  (if (seq content)
+    (list* content (assoc node :clojure.data.xml/event :end) next-nodes)
+    next-nodes))
+
+(defn node->rest-events
+  [node next-nodes]
+  (cond
+    (string? node)     next-nodes
+    (sequential? node) (if-let [r (seq (rest node))]
+                         (cons (node->rest-events (first node) r) next-nodes)
+                         (node->rest-events (first node) next-nodes))
+    :else              (condp = (node :tag)
+                         :-comment next-nodes
+                         :-cdata   next-nodes
+                         (element->rest-events node next-nodes))))
 
 (defn flatten-elements
   "Flatten a collection of elements to an event seq"
@@ -57,14 +96,29 @@
   (when (seq elements)
     (lazy-seq
      (let [e (first elements)]
-       (cons (gen-event e)
-             (flatten-elements (next-events e (rest elements))))))))
+       (cons (node->first-event e)
+             (flatten-elements (node->rest-events e (rest elements))))))))
 
 ;; "Emit" events to the in-memory representation
+
+(defn parent-event->node
+  [e children]
+  (when (#{:start :empty} (-> e meta :clojure.data.xml/event))
+    (assoc e :content (remove nil? children))))
+
+(defn end-element-event?
+  [e]
+  (#{:end :empty} (-> e meta :clojure.data.xml/event)))
+
+(defn event->node
+  [e]
+  (if (= :chars (-> e meta :clojure.data.xml/event))
+    (first (e :content))
+    e))
 
 (defn event-tree
   "Returns a lazy tree of Element objects for the given seq of Event
   objects. See source-seq and parse."
   [events]
   (ffirst
-   (seq-tree event-element event-exit? event-node events)))
+   (seq-tree parent-event->node end-element-event? event->node events)))

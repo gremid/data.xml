@@ -106,7 +106,7 @@
 (defn merge-prefix-map
   "Merge a prefix map into pu-map"
   [pu pm]
-  (persistent! (reduce-kv assoc! (transient pu) pm)))
+  (persistent! (reduce-kv assoc! (transient (or pu EMPTY)) pm)))
 
 (defn merge
   "Merge two pu-maps, left to right"

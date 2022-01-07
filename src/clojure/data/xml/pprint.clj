@@ -21,8 +21,8 @@
     (.setOutputProperty OutputKeys/DOCTYPE_PUBLIC "yes")))
 
 (defn indent-xml
-  [xml-str ^Writer writer]
-  (let [source (-> xml-str StringReader. StreamSource.)
+  [s ^Writer writer]
+  (let [source (-> s StringReader. StreamSource.)
         result (StreamResult. writer)]
     (.transform (indenting-transformer) source result)))
 

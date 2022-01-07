@@ -12,22 +12,30 @@
   {:author "Chris Houser"}
   (:require
    [clojure.data.xml.emit :refer [string-writer write-document]]
-   [clojure.data.xml.event :as event]
    [clojure.data.xml.impl :refer [export-api]]
-   [clojure.data.xml.name :as name]
+   [clojure.data.xml.name :as name :refer [separate-xmlns]]
    [clojure.data.xml.node :as node]
    [clojure.data.xml.parse
     :refer [make-stream-reader pull-seq string-source]]
    [clojure.data.xml.pprint :refer [indent-xml]]
    [clojure.data.xml.process :as process]
    [clojure.data.xml.prxml :as prxml]
+   [clojure.data.xml.pu-map :as pu]
    [clojure.data.xml.tree :refer [event-tree flatten-elements]]))
 
 (export-api node/element* node/element node/cdata node/xml-comment node/element?
-            prxml/sexp-as-element prxml/sexps-as-fragment event/element-nss
+            prxml/sexp-as-element prxml/sexps-as-fragment
             name/alias-uri name/parse-qname name/qname-uri
-            name/qname-local name/qname name/as-qname name/uri-symbol name/symbol-uri
+            name/qname-local name/qname name/as-qname
+            name/uri-symbol name/symbol-uri
             process/find-xmlns process/aggregate-xmlns)
+
+(defn element-nss
+  "Get xmlns environment from element"
+  [{:keys [attrs] :as element}]
+  (pu/merge-prefix-map
+   (-> element meta :clojure.data.xml/nss)
+   (second (separate-xmlns attrs))))
 
 (def ^:private ^:const parser-opts-arg
   '{:keys [include-node? location-info

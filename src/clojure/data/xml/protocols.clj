@@ -10,10 +10,6 @@
 
 ;; XML names can be any data type that has at least a namespace uri and a name slot
 
-(defprotocol AsQName
-  (qname-local [qname] "Get the name for this qname")
-  (qname-uri   [qname] "Get the namespace uri for this qname"))
-
 (defprotocol EventGeneration
   "Protocol for generating new events based on element type"
   (gen-event [item]
@@ -21,9 +17,6 @@
   (next-events [item next-items]
     "Returns the next set of events that should occur after e.  next-events are the
      events that should be generated after this one is complete."))
-
-(defprotocol AsElements
-  (as-elements [expr] "Return a seq of elements represented by an expression."))
 
 (defprotocol AsXmlString
   (xml-str [node] "Serialize atribute value or content node"))

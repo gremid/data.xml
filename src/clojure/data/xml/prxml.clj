@@ -6,16 +6,10 @@
 ;   the terms of this license.
 ;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.data.xml.prxml
-  (:require
-   [clojure.data.xml.node :refer [cdata element element* xml-comment]]
-   [clojure.data.xml.protocols :refer [as-elements AsElements]]))
+(ns clojure.data.xml.prxml)
 
-(defn sexp-element [tag attrs child]
-  (cond
-    (= :-cdata tag) (cdata (first child))
-    (= :-comment tag) (xml-comment (first child))
-    :else (element* tag attrs (mapcat as-elements child))))
+(defprotocol AsElements
+  (as-elements [expr] "Return a seq of elements represented by an expression."))
 
 (extend-protocol AsElements
   clojure.lang.IPersistentVector
@@ -26,7 +20,7 @@
                                         [k (str v)]))
                              after-attrs]
                             [{} content])]
-      [(sexp-element tag attrs content)]))
+      [{:tag tag :attrs attrs :content (mapcat as-elements content)}]))
 
   clojure.lang.ISeq
   (as-elements [s]
@@ -34,7 +28,7 @@
 
   clojure.lang.Keyword
   (as-elements [k]
-    [(element k)])
+    [{:tag k :attrs {}}])
 
   java.lang.String
   (as-elements [s]
