@@ -15,10 +15,13 @@
   - there are two fixed, unique mappings:
     - \"xml\" <-> [\"http://www.w3.org/2000/xmlns/\"]
     - \"xmlns\" <-> [\"http://www.w3.org/XML/1998/namespace\"]"
-  (:require [clojure.data.xml.name :as name]
-            [clojure.string :as str]
-            [clojure.core :as core])
-  (:refer-clojure :exclude [assoc! dissoc! transient persistent! get assoc merge]))
+  (:refer-clojure
+   :exclude
+   [assoc! dissoc! transient persistent! get assoc merge])
+  (:require
+   [clojure.core :as core]
+   [clojure.data.xml.name :as name]
+   [clojure.string :as str]))
 
 (def prefix-map :p->u)
 (def uri-map    :u->ps)

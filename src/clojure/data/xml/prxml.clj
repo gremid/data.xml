@@ -8,8 +8,8 @@
 
 (ns clojure.data.xml.prxml
   (:require
-   [clojure.data.xml.protocols :refer [AsElements as-elements]]
-   [clojure.data.xml.node :refer [cdata xml-comment element* element]]))
+   [clojure.data.xml.node :refer [cdata element element* xml-comment]]
+   [clojure.data.xml.protocols :refer [as-elements AsElements]]))
 
 (defn sexp-element [tag attrs child]
   (cond

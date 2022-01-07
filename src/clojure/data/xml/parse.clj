@@ -7,20 +7,16 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns clojure.data.xml.parse
-  (:require [clojure.string :as str]
-            [clojure.data.xml.event :refer
-             [->StartElementEvent ->EmptyElementEvent ->EndElementEvent
-              ->CharsEvent ->CDataEvent ->CommentEvent]]
-            [clojure.data.xml.impl :refer
-             [static-case]]
-            [clojure.data.xml.name :refer
-             [qname]]
-            [clojure.data.xml.pu-map :as pu])
+  (:require
+   [clojure.data.xml.event
+    :refer [->CharsEvent ->CommentEvent ->EndElementEvent ->StartElementEvent]]
+   [clojure.data.xml.impl :refer [static-case]]
+   [clojure.data.xml.name :refer [qname]]
+   [clojure.data.xml.pu-map :as pu]
+   [clojure.string :as str])
   (:import
    (java.io InputStream Reader)
-   (javax.xml.stream
-    XMLInputFactory XMLStreamReader XMLStreamConstants)
-   (clojure.data.xml.event EndElementEvent)))
+   (javax.xml.stream XMLInputFactory XMLStreamConstants XMLStreamReader)))
 
 (def ^{:private true} input-factory-props
   {:allocator XMLInputFactory/ALLOCATOR

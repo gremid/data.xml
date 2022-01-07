@@ -67,17 +67,17 @@
   (valAt  [this k]
     (.valAt this k nil))
 
-  (valAt [this k nf]
+  (valAt [_ k nf]
     (case k
       :tag     tag
       :attrs   attrs
       :content content
       nf))
-  (count [this] 3)
-  (cons [this entry] 
+  (count [_] 3)
+  (cons [_ entry] 
     (conj (with-meta {:tag tag :attrs attrs :content content} meta)
           entry))
-  (assoc [this k v]
+  (assoc [_ k v]
     (case k
       :tag (Element. v attrs content meta)
       :attrs (Element. tag v content meta)
@@ -100,15 +100,15 @@
   (values [this] (vals this))
   (keySet [this] (set (keys this)))
   (get [this k] (.valAt this k))
-  (containsKey [this k] (case k (:tag :attrs :content) true false))
+  (containsKey [_ k] (case k (:tag :attrs :content) true false))
   (containsValue [this v] (boolean (some #{v} (vals this))))
-  (isEmpty [this] false)
-  (size [this] 3)
+  (isEmpty [_] false)
+  (size [_] 3)
 
   ;; Metadata interface
   IObj
-  (meta [this] meta)
-  (withMeta [this next-meta]
+  (meta [_] meta)
+  (withMeta [_ next-meta]
     (Element. tag attrs content next-meta)))
 
 (defmethod print-method Element [{:keys [tag attrs content]} ^Writer writer]

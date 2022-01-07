@@ -10,8 +10,8 @@
   "Shared private code for data.xml namespaces"
   {:author "Herwig Hochleitner"}
   (:import
-    [java.util Base64]
-    [java.nio.charset StandardCharsets]))
+   (java.nio.charset StandardCharsets)
+   (java.util Base64)))
 
 (defn- var-form? [form]
   (and (seq? form) (= 'var (first form))))

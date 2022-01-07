@@ -9,17 +9,19 @@
 (ns clojure.data.xml.event
   "Data type for xml pull events"
   {:author "Herwig Hochleitner"}
-  (:require [clojure.data.xml.protocols :refer
-             [EventGeneration gen-event next-events xml-str]]
-            [clojure.data.xml.name :refer [separate-xmlns]]
-            [clojure.data.xml.node :refer [element* cdata xml-comment]]
-            [clojure.data.xml.impl :refer [extend-protocol-fns compile-if]]
-            [clojure.data.xml.pu-map :as pu])
-  (:import (clojure.data.xml.node Element CData Comment)
-           (clojure.lang Sequential IPersistentMap Keyword)
-           (java.net URI URL)
-           (java.util Date)
-           (javax.xml.namespace QName)))
+  (:require
+   [clojure.data.xml.impl :refer [compile-if extend-protocol-fns]]
+   [clojure.data.xml.name :refer [separate-xmlns]]
+   [clojure.data.xml.node :refer [cdata element* xml-comment]]
+   [clojure.data.xml.protocols
+    :refer [EventGeneration gen-event next-events xml-str]]
+   [clojure.data.xml.pu-map :as pu])
+  (:import
+   (clojure.data.xml.node CData Comment Element)
+   (clojure.lang IPersistentMap Keyword Sequential)
+   (java.net URI URL)
+   (java.util Date)
+   (javax.xml.namespace QName)))
 
 (definline element-nss* [element]
   `(get (meta ~element) :clojure.data.xml/nss pu/EMPTY))
@@ -52,7 +54,7 @@
                      attrs #((if (seq content)
                                ->StartElementEvent ->EmptyElementEvent)
                              tag %1 (pu/merge-prefix-map (element-nss* element) %2) nil)))
-       :next-events (fn elem-next-events [{:keys [tag content]} next-items]
+       :next-events (fn elem-next-events [{:keys [content]} next-items]
                       (if (seq content)
                         (list* content end-element-event next-items)
                         next-items))}

@@ -7,12 +7,11 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns clojure.data.xml.process
-  (:require [clojure.data.xml.event :refer [element-nss] :as evt]
-            [clojure.data.xml.name :as name :refer [gen-prefix *gen-prefix-counter* qname-uri]]
-            [clojure.data.xml.node :refer [element] :as node]
-            [clojure.data.xml.tree :refer [flatten-elements] :as tree]
-            [clojure.string :as str]
-            [clojure.data.xml.pu-map :as pu]))
+  (:require
+   [clojure.data.xml.name
+    :as name
+    :refer [*gen-prefix-counter* gen-prefix qname-uri]]
+   [clojure.data.xml.pu-map :as pu]))
 
 (defn- reduce-tree
   "Optimized reducer for in-order traversal of nodes, with reduce-like accumulator"

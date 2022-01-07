@@ -1,11 +1,11 @@
 (ns clojure.data.xml.spec
-  (:require [clojure.spec.alpha :as s]
-            [clojure.spec.gen.alpha :as gen]
-            clojure.test.check.generators
-            [clojure.data.xml :as xml]
-            [clojure.data.xml.name :as name]
-            [clojure.data.xml.node :as node]
-            [clojure.string :as str]))
+  (:require
+   [clojure.data.xml :as xml]
+   [clojure.data.xml.name :as name]
+   [clojure.data.xml.node :as node]
+   [clojure.spec.alpha :as s]
+   [clojure.spec.gen.alpha :as gen]
+   [clojure.string :as str]))
 
 (s/def ::qname-conformer
   (s/and (s/conformer

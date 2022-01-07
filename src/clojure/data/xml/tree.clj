@@ -7,10 +7,9 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns clojure.data.xml.tree
-  (:require [clojure.data.xml.protocols :refer
-             [gen-event next-events]]
-            [clojure.data.xml.event :refer
-             [event-element event-node event-exit?]]))
+  (:require
+   [clojure.data.xml.event :refer [event-element event-exit? event-node]]
+   [clojure.data.xml.protocols :refer [gen-event next-events]]))
 
 (defn seq-tree
   "Takes a seq of events that logically represents
