@@ -41,30 +41,5 @@
   (as-elements [o]
     [(str o)]))
 
-(defn sexps-as-fragment
-  "Convert a compact prxml/hiccup-style data structure into the more formal
-   tag/attrs/content format. A seq of elements will be returned, which may
-   not be suitable for immediate use as there is no root element. See also
-   sexp-as-element.
-
-   The format is [:tag-name attr-map? content*]. Each vector opens a new tag;
-   seqs do not open new tags, and are just used for inserting groups of elements
-   into the parent tag. A bare keyword not in a vector creates an empty element.
-
-   To provide XML conversion for your own data types, extend the AsElements
-   protocol to them."
-  ([] nil)
-  ([sexp] (as-elements sexp))
-  ([sexp & sexps] (mapcat as-elements (cons sexp sexps))))
-
-(defn sexp-as-element
-  "Convert a single sexp into an Element"
-  [sexp]
-  (let [[root & more] (sexps-as-fragment sexp)]
-    (when more
-      (throw
-       (IllegalArgumentException.
-        "Cannot have multiple root elements; try creating a fragment instead")))
-    root))
 
 

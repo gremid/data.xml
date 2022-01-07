@@ -12,23 +12,64 @@
   {:author "Chris Houser"}
   (:require
    [clojure.data.xml.emit :refer [string-writer write-document]]
-   [clojure.data.xml.impl :refer [export-api]]
-   [clojure.data.xml.name :as name :refer [separate-xmlns]]
-   [clojure.data.xml.node :as node]
-   [clojure.data.xml.parse
-    :refer [make-stream-reader pull-seq string-source]]
+   [clojure.data.xml.name :refer [clj-ns-name separate-xmlns uri-symbol]]
+   [clojure.data.xml.parse :refer [make-stream-reader pull-seq string-source]]
    [clojure.data.xml.pprint :refer [indent-xml]]
-   [clojure.data.xml.process :as process]
-   [clojure.data.xml.prxml :as prxml]
+   [clojure.data.xml.prxml :refer [as-elements]]
    [clojure.data.xml.pu-map :as pu]
    [clojure.data.xml.tree :refer [event-tree flatten-elements]]))
 
-(export-api node/element* node/element node/cdata node/xml-comment node/element?
-            prxml/sexp-as-element prxml/sexps-as-fragment
-            name/alias-uri name/parse-qname name/qname-uri
-            name/qname-local name/qname name/as-qname
-            name/uri-symbol name/symbol-uri
-            process/find-xmlns process/aggregate-xmlns)
+(defn alias-uri
+  "Define a Clojure namespace aliases for xmlns uris.
+
+  This sets up the current namespace for reading qnames denoted with
+  Clojure's ::alias/keywords reader feature.
+
+  ## Example
+  (alias-uri :D \"DAV:\")
+                           ; similar in effect to
+  ;; (require '[xmlns.DAV%3A :as D])
+                           ; but required namespace is auto-created
+                           ; henceforth, shorthand keywords can be used
+  {:tag ::D/propfind}
+                           ; ::D/propfind will be expanded to :xmlns.DAV%3A/propfind
+                           ; in the current namespace by the reader"
+  {:arglists '([& {:as alias-nss}])}
+  [& ans]
+  (loop [[a n & rst :as ans] ans]
+    (when (seq ans)
+      (let [xn (uri-symbol n)
+            al (symbol (clj-ns-name a))]
+        (create-ns xn)
+        (alias al xn)
+        (recur rst)))))
+
+
+(defn sexps-as-fragment
+  "Convert a compact prxml/hiccup-style data structure into the more formal
+   tag/attrs/content format. A seq of elements will be returned, which may
+   not be suitable for immediate use as there is no root element. See also
+   sexp-as-element.
+
+   The format is [:tag-name attr-map? content*]. Each vector opens a new tag;
+   seqs do not open new tags, and are just used for inserting groups of elements
+   into the parent tag. A bare keyword not in a vector creates an empty element.
+
+   To provide XML conversion for your own data types, extend the AsElements
+   protocol to them."
+  ([] nil)
+  ([sexp] (as-elements sexp))
+  ([sexp & sexps] (mapcat as-elements (cons sexp sexps))))
+
+(defn sexp-as-element
+  "Convert a single sexp into an Element"
+  [sexp]
+  (let [[root & more] (sexps-as-fragment sexp)]
+    (when more
+      (throw
+       (IllegalArgumentException.
+        "Cannot have multiple root elements; try creating a fragment instead")))
+    root))
 
 (defn element-nss
   "Get xmlns environment from element"

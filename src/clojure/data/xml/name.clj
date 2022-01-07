@@ -61,7 +61,7 @@
   [qn]
   (not (str/blank? (qname-uri qn))))
 
-(defn- clj-ns-name
+(defn clj-ns-name
   [ns]
   (cond
     (instance? Namespace ns) (ns-name ns)
@@ -93,31 +93,6 @@
 (defn as-qname
   [n]
   (qname (qname-uri n) (qname-local n)))
-
-(defn alias-uri
-  "Define a Clojure namespace aliases for xmlns uris.
-
-  This sets up the current namespace for reading qnames denoted with
-  Clojure's ::alias/keywords reader feature.
-
-  ## Example
-  (alias-uri :D \"DAV:\")
-                           ; similar in effect to
-  ;; (require '[xmlns.DAV%3A :as D])
-                           ; but required namespace is auto-created
-                           ; henceforth, shorthand keywords can be used
-  {:tag ::D/propfind}
-                           ; ::D/propfind will be expanded to :xmlns.DAV%3A/propfind
-                           ; in the current namespace by the reader"
-  {:arglists '([& {:as alias-nss}])}
-  [& ans]
-  (loop [[a n & rst :as ans] ans]
-    (when (seq ans)
-      (let [xn (uri-symbol n)
-            al (symbol (clj-ns-name a))]
-        (create-ns xn)
-        (alias al xn)
-        (recur rst)))))
 
 (defn xmlns-attr?
   "Is this qname an xmlns declaration?"
