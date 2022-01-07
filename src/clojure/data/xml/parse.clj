@@ -6,7 +6,7 @@
 ;   the terms of this license.
 ;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.data.xml.jvm.parse
+(ns clojure.data.xml.parse
   (:require [clojure.string :as str]
             [clojure.data.xml.event :refer
              [->StartElementEvent ->EmptyElementEvent ->EndElementEvent

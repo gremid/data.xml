@@ -6,7 +6,7 @@
 ;   the terms of this license.
 ;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.data.xml.jvm.emit
+(ns clojure.data.xml.emit
   "JVM implementation of the emitter details"
   {:author "Herwig Hochleitner"}
   (:require (clojure.data.xml

@@ -1,11 +1,10 @@
 (ns clojure.data.xml.spec
-  (:require [clojure.spec :as s]
-            [#?(:cljs cljs.spec.impl.gen :clj clojure.spec.gen) :as gen]
+  (:require [clojure.spec.alpha :as s]
+            [clojure.spec.gen.alpha :as gen]
             clojure.test.check.generators
             [clojure.data.xml :as xml]
             [clojure.data.xml.name :as name]
-            [clojure.data.xml.name :as node]
-            #?@(:cljs [[clojure.data.xml.js.dom :as dom]])
+            [clojure.data.xml.node :as node]
             [clojure.string :as str]))
 
 (s/def ::qname-conformer
@@ -13,11 +12,12 @@
           (fn [qn]
             (try {:uri (name/qname-uri qn)
                   :local (name/qname-local qn)}
-                 (catch :default e
-                   (.error js/console e "Could not conform to qname:" qn)
+                 (catch Throwable t
+                   (println "Could not conform to qname:" qn)
+                   (.printStackTrace t)
                    ::s/invalid)))
           (fn [{:keys [uri local] :as arg}]
-            (.log js/console arg)
+            (println arg)
             (name/qname uri local)))
          #(not (str/blank? (:local %)))))
 
@@ -41,41 +41,27 @@
   (s/keys :req-un [::node/tag]
           :opt-un [::node/attrs ::node/content]))
 
-#?(:cljs
-   (do (s/def ::dom/Element (s/with-gen (partial instance? dom/Element)
-                              #(gen/fmap dom/element-node (s/gen ::node/Element))))
-       (s/def ::dom/Text (s/with-gen (partial instance? dom/Text)
-                           #(gen/fmap dom/text-node (gen/string-ascii))))))
-
 (s/def ::xml/Element
-  #?(:clj ::node/Element
-     :cljs (s/or :dom ::dom/Element
-                 :rec ::node/Element)))
+  ::node/Element)
 
 (s/def ::xml/Text
   (s/or :blank (s/with-gen str/blank? #(s/gen #{"" nil}))
-        :str string?
-        #?@(:cljs [:text ::dom/Text])))
+        :str string?))
 
 (s/def ::xml/Node
   (s/or :text ::xml/Text
         :elem ::xml/Element))
 
-(s/def ::node/tag ::name/qname)
-(s/def ::node/attrs (s/map-of ::name/qname string?
-                              :conform-keys true))
+(s/def ::node/tag
+  ::name/qname)
+
+(s/def ::node/attrs
+  (s/map-of ::name/qname string?
+            :conform-keys true))
+
 (s/def ::node/content
   (s/coll-of ::xml/Node))
 
-
 (comment
-
-  (s/conform
-   (s/coll-of ::name/qname)
-   [:foo :xmlns/foo])
-
-  (require '[clojure.spec.gen :as gen])
-
-  (s/exercise ::name/qname)
-
-  )
+  (s/conform (s/coll-of ::name/qname) [:foo :xmlns/foo])
+  (s/exercise ::name/qname))

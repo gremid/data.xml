@@ -6,36 +6,27 @@
 ;   the terms of this license.
 ;   You must not remove this notice, or any other, from this software.
 
-(ns ^{:doc "Functions to parse XML into lazy sequences and lazy trees and
-  emit these as text."
-      :author "Chris Houser"}
-
-  clojure.data.xml
-  
+(ns clojure.data.xml
+  "Functions to parse XML into lazy sequences and lazy trees and emit these as
+  text."
+  {:author "Chris Houser"}
   (:require
-   (clojure.data.xml
-    [process :as process]
-    [impl :refer [export-api]]
-    [node :as node]
-    [prxml :as prxml]
-    [name :as name]
-    [event :as event])
-   (clojure.data.xml.jvm
-    [pprint :refer
-     [indent-xml]]
-    [parse :refer
-     [pull-seq string-source make-stream-reader]]
-    [emit :refer
-     [write-document string-writer]])
-   
-   [clojure.data.xml.tree :refer
-    [event-tree flatten-elements]]))
+   [clojure.data.xml.emit :refer [string-writer write-document]]
+   [clojure.data.xml.event :as event]
+   [clojure.data.xml.impl :refer [export-api]]
+   [clojure.data.xml.name :as name]
+   [clojure.data.xml.node :as node]
+   [clojure.data.xml.parse
+    :refer [make-stream-reader pull-seq string-source]]
+   [clojure.data.xml.pprint :refer [indent-xml]]
+   [clojure.data.xml.process :as process]
+   [clojure.data.xml.prxml :as prxml]
+   [clojure.data.xml.tree :refer [event-tree flatten-elements]]))
 
 (export-api node/element* node/element node/cdata node/xml-comment node/element?
             prxml/sexp-as-element prxml/sexps-as-fragment event/element-nss
             name/alias-uri name/parse-qname name/qname-uri
             name/qname-local name/qname name/as-qname name/uri-symbol name/symbol-uri
-            name/uri-file name/print-uri-file-command!
             process/find-xmlns process/aggregate-xmlns)
 
 (def ^:private ^:const parser-opts-arg

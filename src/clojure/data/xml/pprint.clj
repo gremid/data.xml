@@ -6,7 +6,7 @@
 ;   the terms of this license.
 ;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.data.xml.jvm.pprint
+(ns clojure.data.xml.pprint
   (:import
    (javax.xml.transform Transformer OutputKeys TransformerFactory)
    (java.io Writer StringReader StringWriter)
