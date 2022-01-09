@@ -44,7 +44,6 @@
         (alias al xn)
         (recur rst)))))
 
-
 (defn sexps-as-fragment
   "Convert a compact prxml/hiccup-style data structure into the more formal
    tag/attrs/content format. A seq of elements will be returned, which may

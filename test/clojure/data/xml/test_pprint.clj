@@ -8,10 +8,10 @@
 
 (ns ^{:doc "Tests for emit to print XML text."
       :author "Herwig Hochleitner"}
-  clojure.data.xml.test-pprint
+ clojure.data.xml.test-pprint
   (:require
-   [clojure.test :refer :all]
-   [clojure.data.xml :refer :all]))
+   [clojure.data.xml :refer [indent-str parse-str]]
+   [clojure.test :refer [deftest is]]))
 
 (def xml
   "<foo><bar/></foo>")

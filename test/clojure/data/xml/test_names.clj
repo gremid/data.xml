@@ -1,6 +1,10 @@
 (ns clojure.data.xml.test-names
-  (:require [clojure.data.xml :refer :all]
-            [clojure.test :refer :all]))
+  (:require
+   [clojure.data.xml :refer [alias-uri emit-str parse-str]]
+   [clojure.data.xml.name
+    :refer [as-qname parse-qname qname qname-local qname-uri]]
+   [clojure.data.xml.test-utils :refer [element]]
+   [clojure.test :refer [are deftest is]]))
 
 (alias-uri
  :U "uri-u:"

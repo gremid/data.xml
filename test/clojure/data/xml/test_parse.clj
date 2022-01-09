@@ -10,9 +10,9 @@
       :author "Chris Houser"}
   clojure.data.xml.test-parse
   (:require
-   [clojure.test :refer :all]
-   [clojure.data.xml :refer [parse-str element]]
-   [clojure.data.xml.test-utils :refer [test-stream lazy-parse*]]))
+   [clojure.test :refer [deftest is]]
+   [clojure.data.xml :refer [parse-str]]
+   [clojure.data.xml.test-utils :refer [lazy-parse* element]]))
 
 (deftest simple
   (let [input "<html><body bg=\"red\">This is <b>bold</b> test</body></html>"

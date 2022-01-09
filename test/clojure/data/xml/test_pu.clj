@@ -1,14 +1,15 @@
 (ns clojure.data.xml.test-pu
-  (:require [clojure.data.xml.pu-map :as pu]
-            [clojure.data.xml.name :as name]
-            [clojure.test :refer [deftest is are testing]]))
+  (:require
+   [clojure.data.xml.name :as name]
+   [clojure.data.xml.pu-map :as pu]
+   [clojure.test :refer [are deftest is]]))
 
 (deftest builtin-mappings
   (is (= name/xml-uri (pu/get pu/EMPTY "xml")))
   (is (= name/xmlns-uri (pu/get pu/EMPTY "xmlns")))
   (is (= ["xml"] (pu/get-prefixes pu/EMPTY name/xml-uri)))
   (is (= ["xmlns"] (pu/get-prefixes pu/EMPTY name/xmlns-uri)))
-  (are [p u] (thrown? #?(:clj Exception :cljs js/Error) (pu/assoc pu/EMPTY p u))
+  (are [p u] (thrown? Exception (pu/assoc pu/EMPTY p u))
     "xml" "_"
     "xmlns" "_"
     "_" name/xml-uri

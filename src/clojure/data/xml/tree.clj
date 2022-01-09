@@ -65,17 +65,18 @@
                          {:content [node]}
                          {:clojure.data.xml/event :chars})
     (sequential? node) (node->first-event (first node))
-    :else              (condp = (node :tag)
+    (node :tag)        (condp = (node :tag)
                          :-comment (vary-meta node assoc
                                               :clojure.data.xml/event :comment)
                          :-cdata   (vary-meta node assoc
                                               :clojure.data.xml/event :cdata)
-                         (element->first-event node))))
+                         (element->first-event node))
+    :else              node))
 
 (defn element->rest-events
-  [{:keys [content] :as node} next-nodes]
+  [{:keys [content]} next-nodes]
   (if (seq content)
-    (list* content (assoc node :clojure.data.xml/event :end) next-nodes)
+    (list* content (with-meta {} {:clojure.data.xml/event :end}) next-nodes)
     next-nodes))
 
 (defn node->rest-events
@@ -85,10 +86,11 @@
     (sequential? node) (if-let [r (seq (rest node))]
                          (cons (node->rest-events (first node) r) next-nodes)
                          (node->rest-events (first node) next-nodes))
-    :else              (condp = (node :tag)
+    (node :tag)        (condp = (node :tag)
                          :-comment next-nodes
                          :-cdata   next-nodes
-                         (element->rest-events node next-nodes))))
+                         (element->rest-events node next-nodes))
+    :else              next-nodes))
 
 (defn flatten-elements
   "Flatten a collection of elements to an event seq"

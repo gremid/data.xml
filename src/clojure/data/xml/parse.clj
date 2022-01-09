@@ -71,9 +71,9 @@
                                (.getLocalName sreader)
                                (.getPrefix sreader))
                  :attrs (attr-hash sreader)}
-                {:clojure.data.xml/event    :start
-                 :clojure.data.xml/location location
-                 :clojure.data.xml/nss      ns-env})
+                {:clojure.data.xml/event         :start
+                 :clojure.data.xml/location-info location
+                 :clojure.data.xml/nss           ns-env})
               (pull-seq sreader opts (cons ns-env ns-envs))))
            (recur))
          XMLStreamReader/END_ELEMENT
@@ -81,8 +81,8 @@
            (cons
             (with-meta
               {}
-              {:clojure.data.xml/event    :end
-               :clojure.data.xml/location location})
+              {:clojure.data.xml/event         :end
+               :clojure.data.xml/location-info location})
             (pull-seq sreader opts (rest ns-envs)))
            (recur))
          XMLStreamReader/CHARACTERS
@@ -94,8 +94,8 @@
              (cons
               (with-meta
                 {:content [text]}
-                {:clojure.data.xml/event    :chars
-                 :clojure.data.xml/location location})
+                {:clojure.data.xml/event         :chars
+                 :clojure.data.xml/location-info location})
               (pull-seq sreader opts ns-envs)))
            (recur))
          XMLStreamReader/COMMENT
@@ -104,8 +104,8 @@
             (with-meta
               {:tag     :-comment
                :content [(.getText sreader)]}
-              {:clojure.data.xml/event    :comment
-               :clojure.data.xml/location location})
+              {:clojure.data.xml/event         :comment
+               :clojure.data.xml/location-info location})
             (pull-seq sreader opts ns-envs))
            (recur))
          ;; end of stream
@@ -114,7 +114,7 @@
          ;; Consume and ignore comments, spaces, processing instructions etc
          (recur))))))
 
-(defn- make-input-factory ^XMLInputFactory
+(defn- ^XMLInputFactory make-input-factory
   [props]
   (let [fac (XMLInputFactory/newInstance)]
     (doseq [[k v] props
@@ -129,8 +129,10 @@
     (cond
       (instance? Reader source)      (.createXMLStreamReader fac ^Reader source)
       (instance? InputStream source) (.createXMLStreamReader fac ^InputStream source)
-      :else                          (throw (IllegalArgumentException.
-                                             "source should be java.io.Reader or java.io.InputStream")))))
+      :else                          (throw
+                                      (IllegalArgumentException.
+                                       (str "source should be java.io.Reader "
+                                            "or java.io.InputStream"))))))
 
 (defn string-source [s]
   (java.io.StringReader. s))

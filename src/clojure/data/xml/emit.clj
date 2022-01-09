@@ -18,24 +18,7 @@
    (java.io OutputStreamWriter StringWriter Writer)
    (java.nio.charset Charset)
    (java.util.logging Level Logger)
-   (javax.xml.namespace QName)
    (javax.xml.stream XMLOutputFactory XMLStreamWriter)))
-
-(defn- prefix-for
-  [qn pu]
-  (or (pu/get-prefix pu (qname-uri qn))
-      (throw
-       (ex-info
-        (str "Auto-generating prefixes is not supported for content-qnames. "
-             "Please declare all URIs used in content qnames.")
-        {:qname qn
-         :uri   (qname-uri qn)}))))
-
-(defn- attr-str
-  [value pu]
-  (if (or (keyword? value) (instance? QName value))
-    (str (prefix-for value pu) ":" (qname-local value))
-    (str value)))
 
 (defn- emit-attrs
   [^XMLStreamWriter writer pu attrs]
@@ -44,12 +27,8 @@
      (let [uri (qname-uri attr)
            local (qname-local attr)]
        (if (str/blank? uri)
-         (.writeAttribute writer
-                          local
-                          (attr-str value pu))
-         (.writeAttribute writer
-                          (pu/get-prefix pu uri) uri local
-                          (attr-str value pu))))
+         (.writeAttribute writer local (str value))
+         (.writeAttribute writer (pu/get-prefix pu uri) uri local (str value))))
      _)
    nil attrs))
 
@@ -111,7 +90,7 @@
   (let [uri       (qname-uri tag)
         local     (qname-local tag)
         parent-pu (first pu-stack)
-        nss       (get (meta e) :clojure.data.xml/nss pu/EMPTY)
+        nss       (get (meta e) :clojure.data.xml/nss)
         pu        (compute-pu parent-pu nss (map qname-uri (keys attrs)) uri local)]
     (if empty-element?
       (do (if (str/blank? uri)
@@ -129,13 +108,17 @@
 
 (defn emit-event
   [{:keys [content] :as e} ^XMLStreamWriter w pu-stack]
-  (condp = (-> e meta :clojure.data.xml/event)
-    :chars   (some->> content first str (.writeCharacters w))
-    :comment (some->> content first str (.writeComment w))
-    :cdata   (some->> content first str (.writeCData w))
-    :end     (do (.writeEndElement w) (next pu-stack))
-    :start   (emit-start-tag e w pu-stack false)
-    :empty   (emit-start-tag e w pu-stack true)))
+  (let [event (-> e meta :clojure.data.xml/event)]
+    (condp = event
+      :start   (emit-start-tag e w pu-stack false)
+      :empty   (emit-start-tag e w pu-stack true)
+      :end     (do (.writeEndElement w) (next pu-stack))
+      (do
+        (condp = event
+          :chars   (some->> content first str (.writeCharacters w))
+          :comment (some->> content first str (.writeComment w))
+          :cdata   (some->> content first str (.writeCData w)))
+        pu-stack))))
 
 (defn check-stream-encoding
   [^OutputStreamWriter w xml-encoding]

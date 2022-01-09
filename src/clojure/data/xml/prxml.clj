@@ -28,7 +28,7 @@
 
   clojure.lang.Keyword
   (as-elements [k]
-    [{:tag k :attrs {}}])
+    [{:tag k :attrs {} :content (list)}])
 
   java.lang.String
   (as-elements [s]

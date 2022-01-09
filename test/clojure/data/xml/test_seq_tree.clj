@@ -8,10 +8,12 @@
 
 (ns ^{:doc "Tests for seq-tree, building a lazy tree from lazy seq."
       :author "Chris Houser"}
-  clojure.data.xml.test-seq-tree
-  (:require [clojure.test :refer :all]
-            [clojure.data.xml.tree :refer [seq-tree]])
-  (:import (java.lang.ref WeakReference)))
+ clojure.data.xml.test-seq-tree
+  (:require
+   [clojure.data.xml.tree :refer [seq-tree]]
+   [clojure.test :refer [deftest is]])
+  (:import
+   (java.lang.ref WeakReference)))
 
 (def tt
   (partial #'seq-tree #(when (= %1 :<) (vector %2)) #{:>} str))
