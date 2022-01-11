@@ -331,22 +331,9 @@ Some utilities, like `process/*-xmlns`, `prxml/sexp-as-*`, `indent` aren't yet i
 
 Make `extend-dom-as-data!` also support assoc, ... on dom nodes.
 
-#### Feel free to pick a [ticket](https://clojure.atlassian.net/browse/DXML) to work on
-
 ## License
 
-Licensed under the [Eclipse Public License](http://www.opensource.org/licenses/eclipse-1.0.php).
+Copyright 2022 Rich Hickey and [contributors](AUTHORS).
 
-## Developer Information
-
-* [GitHub project](https://github.com/clojure/data.xml)
-* [Bug Tracker](https://clojure.atlassian.net/browse/DXML)
-* [Continuous Integration](http://build.clojure.org/job/data.xml/)
-* [Compatibility Test Matrix](http://build.clojure.org/job/data.xml-test-matrix/)
-
-## Contributing
-
-All contributions need to be made via patches attached to tickets in
-[JIRA](http://clojure.atlassian.net/browse/DXML). Check the
-[Contributing to Clojure](https://clojure.org/community/contributing) page for
-more information.
+Licensed under the [Eclipse Public
+License](http://www.opensource.org/licenses/eclipse-1.0.php).

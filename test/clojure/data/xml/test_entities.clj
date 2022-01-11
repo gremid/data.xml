@@ -1,14 +1,6 @@
-;   Copyright (c) Rich Hickey. All rights reserved.
-;   The use and distribution terms for this software are covered by the
-;   Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0.php)
-;   which can be found in the file epl-v10.html at the root of this distribution.
-;   By using this software in any fashion, you are agreeing to be bound by
-;   the terms of this license.
-;   You must not remove this notice, or any other, from this software.
-
-(ns ^{:doc "Test that external entities are not resolved by default, see https://www.owasp.org/index.php/XML_External_Entity_(XXE)_Processing"
-      :author "Carlo Sciolla"}
-  clojure.data.xml.test-entities
+(ns clojure.data.xml.test-entities
+  "Test that external entities are not resolved by default, see
+  https://www.owasp.org/index.php/XML_External_Entity_(XXE)_Processing"
   (:require [clojure.java.io :as io]
             [clojure.test :refer :all]
             [clojure.data.xml :refer :all]))
