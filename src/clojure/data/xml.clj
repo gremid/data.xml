@@ -5,10 +5,13 @@
    [clojure.data.xml.emit :refer [string-writer write-document]]
    [clojure.data.xml.name :refer [clj-ns-name separate-xmlns uri-symbol]]
    [clojure.data.xml.parse :refer [make-stream-reader pull-seq string-source]]
-   [clojure.data.xml.pprint :refer [indent-xml]]
-   [clojure.data.xml.prxml :refer [as-elements]]
+   [clojure.data.xml.sexp :refer [as-elements]]
    [clojure.data.xml.pu-map :as pu]
-   [clojure.data.xml.tree :refer [event-tree flatten-elements]]))
+   [clojure.data.xml.tree :refer [event-tree flatten-elements]])
+  (:import
+   (java.io StringReader Writer)
+   (javax.xml.transform OutputKeys Transformer TransformerFactory)
+   (javax.xml.transform.stream StreamResult StreamSource)))
 
 (defn alias-uri
   "Define a Clojure namespace aliases for xmlns uris.
@@ -182,6 +185,20 @@ for documentation on xml options. These are the defaults:
    (let [sw (string-writer)]
      (apply emit e sw opts)
      (str sw))))
+
+(defn ^Transformer indenting-transformer []
+  (doto (-> (TransformerFactory/newInstance) .newTransformer)
+    (.setOutputProperty OutputKeys/INDENT "yes")
+    (.setOutputProperty OutputKeys/METHOD "xml")
+    (.setOutputProperty "{http://xml.apache.org/xslt}indent-amount" "2")
+    ;; print newline after preamble
+    (.setOutputProperty OutputKeys/DOCTYPE_PUBLIC "yes")))
+
+(defn indent-xml
+  [s ^Writer writer]
+  (let [source (-> s StringReader. StreamSource.)
+        result (StreamResult. writer)]
+    (.transform (indenting-transformer) source result)))
 
 (defn indent
   "Emits the XML and indents the result.  WARNING: this is slow

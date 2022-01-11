@@ -1,9 +1,18 @@
 (ns clojure.data.xml.parse-test
   "Tests for XML parsing functions."
   (:require
-   [clojure.test :refer [deftest is]]
+   [clojure.test :refer [deftest is are]]
+   [clojure.data.xml.name :refer [qname]]
    [clojure.data.xml :refer [parse-str]]
    [clojure.data.xml.util :refer [lazy-parse* element]]))
+
+(deftest test-node-equivalence
+  (are [repr1 repr2] (and (is (= repr1 repr2))
+                          (is (= (hash repr1) (hash repr2))))
+    (element :foo)                  {:tag :foo :attrs {} :content []}
+    (element (qname "DAV:" "foo"))  {:tag (qname "DAV:" "foo") :attrs {} :content []}
+    (element :foo {:a "b"})         {:tag :foo :attrs {:a "b"} :content []}
+    (element :foo {:a "b"} "a" "b") {:tag :foo :attrs {:a "b"} :content ["a" "b"]}))
 
 (deftest simple
   (let [input "<html><body bg=\"red\">This is <b>bold</b> test</body></html>"
