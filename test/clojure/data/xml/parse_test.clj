@@ -1,9 +1,9 @@
-(ns clojure.data.xml.test-parse
+(ns clojure.data.xml.parse-test
   "Tests for XML parsing functions."
   (:require
    [clojure.test :refer [deftest is]]
    [clojure.data.xml :refer [parse-str]]
-   [clojure.data.xml.test-utils :refer [lazy-parse* element]]))
+   [clojure.data.xml.util :refer [lazy-parse* element]]))
 
 (deftest simple
   (let [input "<html><body bg=\"red\">This is <b>bold</b> test</body></html>"

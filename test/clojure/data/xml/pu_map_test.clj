@@ -1,4 +1,4 @@
-(ns clojure.data.xml.test-pu
+(ns clojure.data.xml.pu-map-test
   (:require
    [clojure.data.xml.name :as name]
    [clojure.data.xml.pu-map :as pu]

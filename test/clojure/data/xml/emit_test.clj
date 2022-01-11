@@ -1,12 +1,11 @@
-(ns clojure.data.xml.test-emit
+(ns clojure.data.xml.emit-test
   "Tests for emit to print XML text."
   (:require
    [clojure.data.xml
     :refer [alias-uri emit emit-str indent indent-str parse-str]]
    [clojure.data.xml.name :as name :refer [as-qname]]
    [clojure.data.xml.pu-map :as pu]
-   [clojure.data.xml.test-utils
-    :refer [cdata element lazy-parse* xml-comment]]
+   [clojure.data.xml.util :refer [cdata element lazy-parse* xml-comment]]
    [clojure.test :refer [deftest is testing]]))
 
 (def deep-tree

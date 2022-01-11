@@ -1,4 +1,4 @@
-(ns clojure.data.xml.test-utils
+(ns clojure.data.xml.util
   "Tests for emit to print XML text."
   (:require
    [clojure.data.xml :as xml :refer [parse]])

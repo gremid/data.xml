@@ -1,4 +1,4 @@
-(ns clojure.data.xml.test-seq-tree
+(ns clojure.data.xml.tree-test
   "Tests for seq-tree, building a lazy tree from lazy seq."
   (:require
    [clojure.data.xml.tree :refer [seq-tree]]

@@ -1,4 +1,4 @@
-(ns clojure.data.xml.test-entities
+(ns clojure.data.xml.entities-test
   "Test that external entities are not resolved by default, see
   https://www.owasp.org/index.php/XML_External_Entity_(XXE)_Processing"
   (:require [clojure.java.io :as io]

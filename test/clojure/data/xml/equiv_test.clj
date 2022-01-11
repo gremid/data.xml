@@ -1,7 +1,7 @@
-(ns clojure.data.xml.test-equiv
+(ns clojure.data.xml.equiv-test
   (:require
    [clojure.data.xml.name :refer [qname]]
-   [clojure.data.xml.test-utils :refer [element]]
+   [clojure.data.xml.util :refer [element]]
    [clojure.test :refer [are deftest is]]))
 
 (deftest test-node-equivalence

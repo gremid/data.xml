@@ -1,4 +1,4 @@
-(ns clojure.data.xml.test-pprint
+(ns clojure.data.xml.pprint-test
   "Tests for emit to print XML text."
   (:require
    [clojure.data.xml :refer [indent-str parse-str]]

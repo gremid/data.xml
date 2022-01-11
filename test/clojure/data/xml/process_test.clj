@@ -1,10 +1,10 @@
-(ns clojure.data.xml.test-process
+(ns clojure.data.xml.process-test
   (:require
    [clojure.data.xml :refer [element-nss]]
    [clojure.data.xml.name :refer [qname]]
    [clojure.data.xml.process :refer [aggregate-xmlns find-xmlns]]
    [clojure.data.xml.pu-map :as pu]
-   [clojure.data.xml.test-utils :refer [element]]
+   [clojure.data.xml.util :refer [element]]
    [clojure.string :as str]
    [clojure.test :refer [deftest is]]
    [clojure.walk :as w]))
