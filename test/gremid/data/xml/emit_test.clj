@@ -1,11 +1,11 @@
-(ns clojure.data.xml.emit-test
+(ns gremid.data.xml.emit-test
   "Tests for emit to print XML text."
   (:require
-   [clojure.data.xml
+   [gremid.data.xml
     :refer [alias-uri emit emit-str indent indent-str parse-str]]
-   [clojure.data.xml.name :as name :refer [as-qname]]
-   [clojure.data.xml.pu-map :as pu]
-   [clojure.data.xml.util :refer [cdata element lazy-parse* xml-comment]]
+   [gremid.data.xml.name :as name :refer [as-qname]]
+   [gremid.data.xml.pu-map :as pu]
+   [gremid.data.xml.util :refer [cdata element lazy-parse* xml-comment]]
    [clojure.test :refer [deftest is testing]]))
 
 (def deep-tree
@@ -142,7 +142,7 @@
 (alias-uri :xml name/xml-uri)
 
 (deftest test-default-xmlns
-  (let [nss-meta (comp :clojure.data.xml/nss meta)]
+  (let [nss-meta (comp :gremid.data.xml/nss meta)]
     (is (= (pu/merge-prefix-map nil {"" "NS"})
            (nss-meta (parse-str "<foo xmlns=\"NS\"/>"))
            (nss-meta (parse-str (emit-str (parse-str "<foo xmlns=\"NS\"/>")))))))

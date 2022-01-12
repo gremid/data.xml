@@ -1,10 +1,10 @@
-(ns clojure.data.xml.process-test
+(ns gremid.data.xml.process-test
   (:require
-   [clojure.data.xml :refer [element-nss]]
-   [clojure.data.xml.name :refer [qname]]
-   [clojure.data.xml.process :refer [aggregate-xmlns find-xmlns]]
-   [clojure.data.xml.pu-map :as pu]
-   [clojure.data.xml.util :refer [element]]
+   [gremid.data.xml :refer [element-nss]]
+   [gremid.data.xml.name :refer [qname]]
+   [gremid.data.xml.process :refer [aggregate-xmlns find-xmlns]]
+   [gremid.data.xml.pu-map :as pu]
+   [gremid.data.xml.util :refer [element]]
    [clojure.string :as str]
    [clojure.test :refer [deftest is]]
    [clojure.walk :as w]))
@@ -13,7 +13,7 @@
   (element
    :foo nil
    (with-meta (element :bar {:xmlns "MOO:"} "some" "content")
-     {:clojure.data.xml/nss (pu/merge-prefix-map nil {"p" "PAR:"})})
+     {:gremid.data.xml/nss (pu/merge-prefix-map nil {"p" "PAR:"})})
    "more content"
    (element (qname "GOO:" "ho") {(qname "GEE:" "hi") "ma"} "ii")
    "end"))

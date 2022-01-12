@@ -1,9 +1,9 @@
-(ns clojure.data.xml.sexp-test
+(ns gremid.data.xml.sexp-test
   "Tests for reading [:tag {:attr 'value} body*] as XML."
   (:require
    [clojure.test :refer [deftest is testing]]
-   [clojure.data.xml :refer [sexp-as-element sexps-as-fragment emit-str]]
-   [clojure.data.xml.util :refer [lazy-parse* element cdata xml-comment]]))
+   [gremid.data.xml :refer [sexp-as-element sexps-as-fragment emit-str]]
+   [gremid.data.xml.util :refer [lazy-parse* element cdata xml-comment]]))
 
 (deftest as-element
   (let [xml-input "<tag attr=\"value\"><body /></tag>"

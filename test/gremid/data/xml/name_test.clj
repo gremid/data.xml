@@ -1,9 +1,9 @@
-(ns clojure.data.xml.name-test
+(ns gremid.data.xml.name-test
   (:require
-   [clojure.data.xml :refer [alias-uri emit-str parse-str]]
-   [clojure.data.xml.name
+   [gremid.data.xml :refer [alias-uri emit-str parse-str]]
+   [gremid.data.xml.name
     :refer [as-qname parse-qname qname qname-local qname-uri]]
-   [clojure.data.xml.util :refer [element]]
+   [gremid.data.xml.util :refer [element]]
    [clojure.test :refer [are deftest is]]))
 
 (alias-uri

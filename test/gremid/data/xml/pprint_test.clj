@@ -1,7 +1,7 @@
-(ns clojure.data.xml.pprint-test
+(ns gremid.data.xml.pprint-test
   "Tests for emit to print XML text."
   (:require
-   [clojure.data.xml :refer [indent-str parse-str]]
+   [gremid.data.xml :refer [indent-str parse-str]]
    [clojure.test :refer [deftest is]]))
 
 (def xml

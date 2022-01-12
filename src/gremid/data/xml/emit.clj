@@ -1,9 +1,9 @@
-(ns clojure.data.xml.emit
+(ns gremid.data.xml.emit
   "JVM implementation of the emitter details"
   (:require
-   [clojure.data.xml.name
+   [gremid.data.xml.name
     :refer [*gen-prefix-counter* gen-prefix qname-local qname-uri]]
-   [clojure.data.xml.pu-map :as pu]
+   [gremid.data.xml.pu-map :as pu]
    [clojure.string :as str])
   (:import
    (java.io OutputStreamWriter StringWriter Writer)
@@ -42,7 +42,7 @@
           prefix))))
 
 (def ^Logger logger
-  (Logger/getLogger "clojure.data.xml"))
+  (Logger/getLogger "gremid.data.xml"))
 
 (defn- compute-pu
   [pu elem-pu attr-uris tag-uri tag-local]
@@ -81,7 +81,7 @@
   (let [uri       (qname-uri tag)
         local     (qname-local tag)
         parent-pu (first pu-stack)
-        nss       (get (meta e) :clojure.data.xml/nss)
+        nss       (get (meta e) :gremid.data.xml/nss)
         pu        (compute-pu parent-pu nss (map qname-uri (keys attrs)) uri local)]
     (if empty-element?
       (do (if (str/blank? uri)
@@ -99,7 +99,7 @@
 
 (defn emit-event
   [{:keys [content] :as e} ^XMLStreamWriter w pu-stack]
-  (let [event (-> e meta :clojure.data.xml/event)]
+  (let [event (-> e meta :gremid.data.xml/event)]
     (condp = event
       :start   (emit-start-tag e w pu-stack false)
       :empty   (emit-start-tag e w pu-stack true)

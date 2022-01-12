@@ -1,4 +1,4 @@
-(ns clojure.data.xml.sexp)
+(ns gremid.data.xml.sexp)
 
 (defprotocol AsElements
   (as-elements [expr] "Return a seq of elements represented by an expression."))

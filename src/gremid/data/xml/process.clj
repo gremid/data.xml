@@ -1,9 +1,9 @@
-(ns clojure.data.xml.process
+(ns gremid.data.xml.process
   (:require
-   [clojure.data.xml.name
+   [gremid.data.xml.name
     :as name
     :refer [*gen-prefix-counter* gen-prefix qname-uri]]
-   [clojure.data.xml.pu-map :as pu]))
+   [gremid.data.xml.pu-map :as pu]))
 
 (defn- reduce-tree
   "Optimized reducer for in-order traversal of nodes, with reduce-like accumulator"
@@ -41,7 +41,7 @@
   "Put all occurring xmlns into the root"
   [xml]
   (with-meta
-    xml {:clojure.data.xml/nss
+    xml {:gremid.data.xml/nss
          (binding [*gen-prefix-counter* 0]
            (-> (fn [tm uri]
                  (pu/assoc! tm (gen-prefix) uri))

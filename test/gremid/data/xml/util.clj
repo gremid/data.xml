@@ -1,7 +1,7 @@
-(ns clojure.data.xml.util
+(ns gremid.data.xml.util
   "Tests for emit to print XML text."
   (:require
-   [clojure.data.xml :as xml :refer [parse]])
+   [gremid.data.xml :as xml :refer [parse]])
   (:import
    (java.io ByteArrayInputStream)))
 

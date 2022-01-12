@@ -1,4 +1,4 @@
-(ns clojure.data.xml.pu-map
+(ns gremid.data.xml.pu-map
   "Provides a bidirectional mapping for keeping track of prefix->uri mappings in xml namespaces.
 
   This has the semantics of a basic key -> multiple values map + two special features, both of which are dictated by the xml standard:
@@ -12,7 +12,7 @@
    [assoc! dissoc! transient persistent! get assoc merge])
   (:require
    [clojure.core :as core]
-   [clojure.data.xml.name :as name]
+   [gremid.data.xml.name :as name]
    [clojure.string :as str]))
 
 (def prefix-map :p->u)

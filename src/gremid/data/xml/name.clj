@@ -1,4 +1,4 @@
-(ns clojure.data.xml.name
+(ns gremid.data.xml.name
   (:require
    [clojure.string :as str])
   (:import

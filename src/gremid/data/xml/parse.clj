@@ -1,7 +1,7 @@
-(ns clojure.data.xml.parse
+(ns gremid.data.xml.parse
   (:require
-   [clojure.data.xml.name :refer [qname]]
-   [clojure.data.xml.pu-map :as pu])
+   [gremid.data.xml.name :refer [qname]]
+   [gremid.data.xml.pu-map :as pu])
   (:import
    (java.io InputStream Reader)
    (javax.xml.stream XMLInputFactory XMLStreamReader)))
@@ -63,9 +63,9 @@
                                (.getLocalName sreader)
                                (.getPrefix sreader))
                  :attrs (attr-hash sreader)}
-                {:clojure.data.xml/event         :start
-                 :clojure.data.xml/location-info location
-                 :clojure.data.xml/nss           ns-env})
+                {:gremid.data.xml/event         :start
+                 :gremid.data.xml/location-info location
+                 :gremid.data.xml/nss           ns-env})
               (pull-seq sreader opts (cons ns-env ns-envs))))
            (recur))
          XMLStreamReader/END_ELEMENT
@@ -73,8 +73,8 @@
            (cons
             (with-meta
               {}
-              {:clojure.data.xml/event         :end
-               :clojure.data.xml/location-info location})
+              {:gremid.data.xml/event         :end
+               :gremid.data.xml/location-info location})
             (pull-seq sreader opts (rest ns-envs)))
            (recur))
          XMLStreamReader/CHARACTERS
@@ -86,8 +86,8 @@
              (cons
               (with-meta
                 {:content [text]}
-                {:clojure.data.xml/event         :chars
-                 :clojure.data.xml/location-info location})
+                {:gremid.data.xml/event         :chars
+                 :gremid.data.xml/location-info location})
               (pull-seq sreader opts ns-envs)))
            (recur))
          XMLStreamReader/COMMENT
@@ -96,8 +96,8 @@
             (with-meta
               {:tag     :-comment
                :content [(.getText sreader)]}
-              {:clojure.data.xml/event         :comment
-               :clojure.data.xml/location-info location})
+              {:gremid.data.xml/event         :comment
+               :gremid.data.xml/location-info location})
             (pull-seq sreader opts ns-envs))
            (recur))
          ;; end of stream

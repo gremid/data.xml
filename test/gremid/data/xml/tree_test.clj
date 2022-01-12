@@ -1,7 +1,7 @@
-(ns clojure.data.xml.tree-test
+(ns gremid.data.xml.tree-test
   "Tests for seq-tree, building a lazy tree from lazy seq."
   (:require
-   [clojure.data.xml.tree :refer [seq-tree]]
+   [gremid.data.xml.tree :refer [seq-tree]]
    [clojure.test :refer [deftest is]])
   (:import
    (java.lang.ref WeakReference)))

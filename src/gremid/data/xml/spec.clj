@@ -1,8 +1,8 @@
-(ns clojure.data.xml.spec
+(ns gremid.data.xml.spec
   (:require
-   [clojure.data.xml :as xml]
-   [clojure.data.xml.name :as name]
-   [clojure.data.xml.node :as node]
+   [gremid.data.xml :as xml]
+   [gremid.data.xml.name :as name]
+   [gremid.data.xml.node :as node]
    [clojure.spec.alpha :as s]
    [clojure.spec.gen.alpha :as gen]
    [clojure.string :as str]))

@@ -1,13 +1,13 @@
-(ns clojure.data.xml
+(ns gremid.data.xml
   "Functions to parse XML into lazy sequences and lazy trees and emit these as
   text."
   (:require
-   [clojure.data.xml.emit :refer [string-writer write-document]]
-   [clojure.data.xml.name :refer [clj-ns-name separate-xmlns uri-symbol]]
-   [clojure.data.xml.parse :refer [make-stream-reader pull-seq string-source]]
-   [clojure.data.xml.sexp :refer [as-elements]]
-   [clojure.data.xml.pu-map :as pu]
-   [clojure.data.xml.tree :refer [event-tree flatten-elements]])
+   [gremid.data.xml.emit :refer [string-writer write-document]]
+   [gremid.data.xml.name :refer [clj-ns-name separate-xmlns uri-symbol]]
+   [gremid.data.xml.parse :refer [make-stream-reader pull-seq string-source]]
+   [gremid.data.xml.sexp :refer [as-elements]]
+   [gremid.data.xml.pu-map :as pu]
+   [gremid.data.xml.tree :refer [event-tree flatten-elements]])
   (:import
    (java.io StringReader Writer)
    (javax.xml.transform OutputKeys Transformer TransformerFactory)
@@ -68,7 +68,7 @@
   "Get xmlns environment from element"
   [{:keys [attrs] :as element}]
   (pu/merge-prefix-map
-   (-> element meta :clojure.data.xml/nss)
+   (-> element meta :gremid.data.xml/nss)
    (second (separate-xmlns attrs))))
 
 (def ^:private ^:const parser-opts-arg

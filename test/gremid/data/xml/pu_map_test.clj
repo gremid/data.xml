@@ -1,7 +1,7 @@
-(ns clojure.data.xml.pu-map-test
+(ns gremid.data.xml.pu-map-test
   (:require
-   [clojure.data.xml.name :as name]
-   [clojure.data.xml.pu-map :as pu]
+   [gremid.data.xml.name :as name]
+   [gremid.data.xml.pu-map :as pu]
    [clojure.test :refer [are deftest is]]))
 
 (deftest builtin-mappings

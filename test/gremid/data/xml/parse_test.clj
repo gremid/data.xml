@@ -1,10 +1,10 @@
-(ns clojure.data.xml.parse-test
+(ns gremid.data.xml.parse-test
   "Tests for XML parsing functions."
   (:require
    [clojure.test :refer [deftest is are]]
-   [clojure.data.xml.name :refer [qname]]
-   [clojure.data.xml :refer [parse-str]]
-   [clojure.data.xml.util :refer [lazy-parse* element]]))
+   [gremid.data.xml.name :refer [qname]]
+   [gremid.data.xml :refer [parse-str]]
+   [gremid.data.xml.util :refer [lazy-parse* element]]))
 
 (deftest test-node-equivalence
   (are [repr1 repr2] (and (is (= repr1 repr2))
@@ -86,7 +86,7 @@
 
 (deftest test-location-meta
   (let [input "<a><b/>\n<b/></a>"
-        location-meta (comp :clojure.data.xml/location-info meta)]
+        location-meta (comp :gremid.data.xml/location-info meta)]
     ;the numbers look 1 based
     (is (= 1 (-> input parse-str location-meta :line-number)))
     (is (= 1 (-> input parse-str location-meta :column-number)))

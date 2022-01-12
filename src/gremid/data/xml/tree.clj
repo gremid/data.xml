@@ -1,6 +1,6 @@
-(ns clojure.data.xml.tree
-  (:require [clojure.data.xml.name :refer [separate-xmlns]]
-            [clojure.data.xml.pu-map :as pu]))
+(ns gremid.data.xml.tree
+  (:require [gremid.data.xml.name :refer [separate-xmlns]]
+            [gremid.data.xml.pu-map :as pu]))
 
 (defn seq-tree
   "Takes a seq of events that logically represents
@@ -45,9 +45,9 @@
   (let [[attrs' xmlns-attrs] (separate-xmlns attrs)]
     (-> node
         (assoc :attrs attrs')
-        (vary-meta assoc :clojure.data.xml/event
+        (vary-meta assoc :gremid.data.xml/event
                    (if (seq content) :start :empty))
-        (vary-meta update :clojure.data.xml/nss
+        (vary-meta update :gremid.data.xml/nss
                    pu/merge-prefix-map xmlns-attrs))))
 
 (defn node->first-event
@@ -55,20 +55,20 @@
   (cond
     (string? node)     (with-meta
                          {:content [node]}
-                         {:clojure.data.xml/event :chars})
+                         {:gremid.data.xml/event :chars})
     (sequential? node) (node->first-event (first node))
     (node :tag)        (condp = (node :tag)
                          :-comment (vary-meta node assoc
-                                              :clojure.data.xml/event :comment)
+                                              :gremid.data.xml/event :comment)
                          :-cdata   (vary-meta node assoc
-                                              :clojure.data.xml/event :cdata)
+                                              :gremid.data.xml/event :cdata)
                          (element->first-event node))
     :else              node))
 
 (defn element->rest-events
   [{:keys [content]} next-nodes]
   (if (seq content)
-    (list* content (with-meta {} {:clojure.data.xml/event :end}) next-nodes)
+    (list* content (with-meta {} {:gremid.data.xml/event :end}) next-nodes)
     next-nodes))
 
 (defn node->rest-events
@@ -97,16 +97,16 @@
 
 (defn parent-event->node
   [e children]
-  (when (#{:start :empty} (-> e meta :clojure.data.xml/event))
+  (when (#{:start :empty} (-> e meta :gremid.data.xml/event))
     (assoc e :content (remove nil? children))))
 
 (defn end-element-event?
   [e]
-  (#{:end :empty} (-> e meta :clojure.data.xml/event)))
+  (#{:end :empty} (-> e meta :gremid.data.xml/event)))
 
 (defn event->node
   [e]
-  (if (= :chars (-> e meta :clojure.data.xml/event))
+  (if (= :chars (-> e meta :gremid.data.xml/event))
     (first (e :content))
     e))
 
