@@ -152,7 +152,6 @@
   [props]
   (let [^XMLInputFactory2 fac (XMLInputFactory/newInstance)]
     (doto fac
-      (.configureForRoundTripping)
       (.setProperty XMLInputFactory2/P_REPORT_PROLOG_WHITESPACE true))
     (doseq [[k v] props
             :when (contains? input-factory-props k)
