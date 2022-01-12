@@ -82,7 +82,8 @@
         local     (qname-local tag)
         parent-pu (first pu-stack)
         nss       (get (meta e) :gremid.data.xml/nss)
-        pu        (compute-pu parent-pu nss (map qname-uri (keys attrs)) uri local)]
+        pu        (compute-pu parent-pu nss (map qname-uri (keys attrs))
+                              uri local)]
     (if empty-element?
       (do (if (str/blank? uri)
             (.writeEmptyElement w local)
@@ -97,18 +98,30 @@
           (emit-attrs w pu attrs)
           (cons pu pu-stack)))))
 
+(defn emit-end-tag
+  [_ ^XMLStreamWriter w pu-stack]
+  (.writeEndElement w)
+  (next pu-stack))
+
+(defn emit-pi
+  [{{:keys [target data]} :attrs} ^XMLStreamWriter w]
+  (if (not-empty data)
+    (.writeProcessingInstruction w target data)
+    (.writeProcessingInstruction w target)))
+
 (defn emit-event
   [{:keys [content] :as e} ^XMLStreamWriter w pu-stack]
   (let [event (-> e meta :gremid.data.xml/event)]
     (condp = event
-      :start   (emit-start-tag e w pu-stack false)
-      :empty   (emit-start-tag e w pu-stack true)
-      :end     (do (.writeEndElement w) (next pu-stack))
+      :start (emit-start-tag e w pu-stack false)
+      :empty (emit-start-tag e w pu-stack true)
+      :end   (emit-end-tag e w pu-stack)
       (do
         (condp = event
           :chars   (some->> content first str (.writeCharacters w))
           :comment (some->> content first str (.writeComment w))
-          :cdata   (some->> content first str (.writeCData w)))
+          :cdata   (some->> content first str (.writeCData w))
+          :pi      (emit-pi e w))
         pu-stack))))
 
 (defn check-stream-encoding
@@ -133,7 +146,11 @@
     (check-stream-encoding w (or (:encoding opts) "UTF-8")))
   (binding [*gen-prefix-counter* 0]
     (let [^XMLStreamWriter sw (-> (XMLOutputFactory/newInstance)
-                                  (.createXMLStreamWriter w))]
+                                  (.createXMLStreamWriter w))
+          document-events?    (some->> events first :tag (= :-document))
+          events              (cond->> events
+                                document-events? (drop 1)
+                                document-events? (drop-last 1))]
       (.writeStartDocument sw (or (:encoding opts) "UTF-8") "1.0")
       (when-let [doctype (:doctype opts)] (.writeDTD sw doctype))
       (reduce #(emit-event %2 sw %1) [pu/EMPTY] events)

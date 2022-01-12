@@ -216,3 +216,8 @@ for documentation on xml options. These are the defaults:
 
 ;; TODO implement ~normalize to simulate an emit-parse roundtrip
 ;;      in terms of xmlns environment and keywords vs qnames
+
+(comment
+  (emit-str
+   (parse-str "<?xml version=\"1.0\"?><?test?><root/><?test2?>"
+              :include-node? #{:element :pi :characters})))

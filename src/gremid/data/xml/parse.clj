@@ -45,7 +45,7 @@
      :column-number    (.getColumnNumber location)
      :line-number      (.getLineNumber location)}))
 
-(defn pull-seq
+(defn pull-seq'
   "Creates a seq of events."
   [^XMLStreamReader sreader {:keys [include-node? location-info skip-whitespace] :as opts} ns-envs]
   ;; Note, sreader is mutable and mutated here in pull-seq, but it's protected
@@ -66,7 +66,7 @@
                 {:gremid.data.xml/event         :start
                  :gremid.data.xml/location-info location
                  :gremid.data.xml/nss           ns-env})
-              (pull-seq sreader opts (cons ns-env ns-envs))))
+              (pull-seq' sreader opts (cons ns-env ns-envs))))
            (recur))
          XMLStreamReader/END_ELEMENT
          (if (include-node? :element)
@@ -75,7 +75,7 @@
               {}
               {:gremid.data.xml/event         :end
                :gremid.data.xml/location-info location})
-            (pull-seq sreader opts (rest ns-envs)))
+            (pull-seq' sreader opts (rest ns-envs)))
            (recur))
          XMLStreamReader/CHARACTERS
          (if-let [text (and (include-node? :characters)
@@ -88,7 +88,7 @@
                 {:content [text]}
                 {:gremid.data.xml/event         :chars
                  :gremid.data.xml/location-info location})
-              (pull-seq sreader opts ns-envs)))
+              (pull-seq' sreader opts ns-envs)))
            (recur))
          XMLStreamReader/COMMENT
          (if (include-node? :comment)
@@ -98,13 +98,40 @@
                :content [(.getText sreader)]}
               {:gremid.data.xml/event         :comment
                :gremid.data.xml/location-info location})
-            (pull-seq sreader opts ns-envs))
+            (pull-seq' sreader opts ns-envs))
+           (recur))
+         XMLStreamReader/PROCESSING_INSTRUCTION
+         (if (include-node? :pi)
+           (cons
+            (with-meta
+              {:tag     :-pi
+               :attrs {:target (.getPITarget sreader)
+                       :data   (.getPIData sreader)}}
+              {:gremid.data.xml/event         :pi
+               :gremid.data.xml/location-info location})
+            (pull-seq' sreader opts ns-envs))
            (recur))
          ;; end of stream
          false
          nil
          ;; Consume and ignore comments, spaces, processing instructions etc
          (recur))))))
+
+(defn pull-seq
+  [^XMLStreamReader sreader {:keys [include-node?] :as opts} ns-envs]
+  (let [document? (or (include-node? :document) (include-node? :pi))
+        evt-seq   (pull-seq' sreader opts ns-envs)]
+    (if document?
+      (concat [(with-meta
+                 {:tag     :-document
+                  :attrs   {}
+                  :content (list)}
+                 {:gremid.data.xml/event :start})]
+              evt-seq
+              [(with-meta
+                 {}
+                 {:gremid.data.xml/event :end})])
+      evt-seq)))
 
 (defn- ^XMLInputFactory make-input-factory
   [props]

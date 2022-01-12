@@ -62,6 +62,8 @@
                                               :gremid.data.xml/event :comment)
                          :-cdata   (vary-meta node assoc
                                               :gremid.data.xml/event :cdata)
+                         :-pi      (vary-meta node assoc
+                                              :gremid.data.xml/event :pi)
                          (element->first-event node))
     :else              node))
 
@@ -81,6 +83,7 @@
     (node :tag)        (condp = (node :tag)
                          :-comment next-nodes
                          :-cdata   next-nodes
+                         :-pi      next-nodes
                          (element->rest-events node next-nodes))
     :else              next-nodes))
 
