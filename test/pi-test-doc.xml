@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?><?xml-model href="schema.rnc" type="application/relax-ng-compact-syntax"?><a>
+    <b><?oxy_comment_start author="joe" timestamp="20210824T130740+0100" comment="a
+        b
+        c"?><?oxy_comment_start author="marie" timestamp="20210824T130938+0100" comment="def" mid="2"?>text<?oxy_comment_end?><?oxy_comment_end mid="2"?>
+        <c/>
+    </b>
+</a>
