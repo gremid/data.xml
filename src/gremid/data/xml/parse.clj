@@ -105,8 +105,9 @@
            (cons
             (with-meta
               {:tag     :-pi
-               :attrs {:target (.getPITarget sreader)
-                       :data   (.getPIData sreader)}}
+               :attrs   {:target (.getPITarget sreader)
+                         :data   (.getPIData sreader)}
+               :content (list)}
               {:gremid.data.xml/event         :pi
                :gremid.data.xml/location-info location})
             (pull-seq' sreader opts ns-envs))
