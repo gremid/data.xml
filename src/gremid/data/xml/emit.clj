@@ -1,15 +1,17 @@
 (ns gremid.data.xml.emit
   "JVM implementation of the emitter details"
   (:require
+   [clojure.string :as str]
    [gremid.data.xml.name
     :refer [*gen-prefix-counter* gen-prefix qname-local qname-uri]]
-   [gremid.data.xml.pu-map :as pu]
-   [clojure.string :as str])
+   [gremid.data.xml.pu-map :as pu])
   (:import
+   (com.ctc.wstx.api WstxOutputProperties)
    (java.io OutputStreamWriter StringWriter Writer)
    (java.nio.charset Charset)
    (java.util.logging Level Logger)
-   (javax.xml.stream XMLOutputFactory XMLStreamWriter)))
+   (javax.xml.stream XMLOutputFactory XMLStreamWriter)
+   (org.codehaus.stax2 XMLOutputFactory2)))
 
 (defn- emit-attrs
   [^XMLStreamWriter writer pu attrs]
@@ -136,6 +138,12 @@
               {:stream-encoding   (.getEncoding w)
                :declared-encoding xml-encoding}))))
 
+(defn ^XMLOutputFactory2 make-output-factory
+  []
+  (doto (XMLOutputFactory/newInstance)
+    (.configureForXmlConformance)
+    (.setProperty WstxOutputProperties/P_USE_DOUBLE_QUOTES_IN_XML_DECL true)))
+
 (defn write-document
   "Writes the given event seq as XML text to writer.
    Options:
@@ -145,7 +153,7 @@
   (when (instance? OutputStreamWriter w)
     (check-stream-encoding w (or (:encoding opts) "UTF-8")))
   (binding [*gen-prefix-counter* 0]
-    (let [^XMLStreamWriter sw (-> (XMLOutputFactory/newInstance)
+    (let [^XMLStreamWriter sw (-> (make-output-factory)
                                   (.createXMLStreamWriter w))
           document-events?    (some->> events first :tag (= :-document))
           events              (cond->> events

@@ -4,7 +4,8 @@
    [gremid.data.xml.pu-map :as pu])
   (:import
    (java.io InputStream Reader)
-   (javax.xml.stream XMLInputFactory XMLStreamReader)))
+   (javax.xml.stream XMLInputFactory XMLStreamReader)
+   (org.codehaus.stax2 XMLInputFactory2)))
 
 (def ^{:private true} input-factory-props
   {:allocator                    XMLInputFactory/ALLOCATOR
@@ -90,6 +91,19 @@
                  :gremid.data.xml/location-info location})
               (pull-seq' sreader opts ns-envs)))
            (recur))
+         XMLStreamReader/SPACE
+         (if-let [text (and (include-node? :characters)
+                            (not (and skip-whitespace (.isWhiteSpace sreader)))
+                            (.getText sreader))]
+           (if (zero? (.length ^CharSequence text))
+             (recur)
+             (cons
+              (with-meta
+                {:content [text]}
+                {:gremid.data.xml/event         :chars
+                 :gremid.data.xml/location-info location})
+              (pull-seq' sreader opts ns-envs)))
+           (recur))
          XMLStreamReader/COMMENT
          (if (include-node? :comment)
            (cons
@@ -134,9 +148,12 @@
                  {:gremid.data.xml/event :end})])
       evt-seq)))
 
-(defn- ^XMLInputFactory make-input-factory
+(defn- ^XMLInputFactory2 make-input-factory
   [props]
-  (let [fac (XMLInputFactory/newInstance)]
+  (let [^XMLInputFactory2 fac (XMLInputFactory/newInstance)]
+    (doto fac
+      (.configureForRoundTripping)
+      (.setProperty XMLInputFactory2/P_REPORT_PROLOG_WHITESPACE true))
     (doseq [[k v] props
             :when (contains? input-factory-props k)
             :let  [prop (input-factory-props k)]]
