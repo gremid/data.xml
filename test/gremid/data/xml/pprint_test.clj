@@ -1,8 +1,8 @@
 (ns gremid.data.xml.pprint-test
   "Tests for emit to print XML text."
   (:require
-   [gremid.data.xml :refer [indent-str parse-str]]
-   [clojure.test :refer [deftest is]]))
+   [clojure.test :refer [deftest is]]
+   [gremid.data.xml :as dx]))
 
 (def xml
   "<foo><bar/></foo>")
@@ -17,5 +17,5 @@
 "))
 
 (deftest test-indent
-  (is (= indented-xml (indent-str (parse-str xml)))))
+  (is (= indented-xml (dx/indent-str (dx/parse xml)))))
 

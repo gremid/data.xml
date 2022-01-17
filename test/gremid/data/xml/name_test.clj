@@ -1,12 +1,12 @@
 (ns gremid.data.xml.name-test
   (:require
-   [gremid.data.xml :refer [alias-uri emit-str parse-str]]
+   [gremid.data.xml :as dx]
    [gremid.data.xml.name
     :refer [as-qname parse-qname qname qname-local qname-uri]]
    [gremid.data.xml.util :refer [element]]
    [clojure.test :refer [are deftest is]]))
 
-(alias-uri
+(dx/alias-uri
  :U "uri-u:"
  :D "DAV:"
  'V "uri-v:"
@@ -25,13 +25,13 @@
 
 
 (deftest test-emit-raw
-  (are [node result] (= (emit-str node) result)
+  (are [node result] (= (dx/emit-str node) result)
     {:tag ::D/limit :attrs {:xmlns/D "DAV:"}
      :content [{:tag ::D/nresults :content ["100"]}]}
     "<?xml version=\"1.0\" encoding=\"UTF-8\"?><D:limit xmlns:D=\"DAV:\"><D:nresults>100</D:nresults></D:limit>"))
 
 (deftest test-parse-raw
-  (are [xml result] (= (parse-str xml) result)
+  (are [xml result] (= (dx/parse xml) result)
     "<D:limit xmlns:D=\"DAV:\"><D:nresults>100</D:nresults></D:limit>"
     (element ::D/limit {}
              (element ::D/nresults nil "100"))))
@@ -40,12 +40,12 @@
   (is (= (qname "foo") (as-qname :foo))))
 
 (deftest test-gen-prefix
-  (are [node] (= (parse-str (emit-str node)) node)
+  (are [node] (= (dx/parse (dx/emit-str node)) node)
     (element ::D/limit {::V/moo "gee"}
              (element ::D/nresults nil "100"))))
 
 (deftest test-reassign-prefix
-  (are [node reparsed] (= (parse-str (emit-str node)) reparsed)
+  (are [node reparsed] (= (dx/parse (dx/emit-str node)) reparsed)
     (element ::D/limit {:xmlns/D "DAV:"}
              ;; because of outer binding, "uri-v:" will be bound to
              ;; generated xmlns:a instead of xmlns:D
@@ -53,7 +53,7 @@
     (element ::D/limit {} (element ::V/other))))
 
 (deftest test-preserve-empty-ns
-  (are [el] (= el (parse-str (emit-str (assoc-in el [:attrs :xmlns] "DAV:"))))
+  (are [el] (= el (dx/parse (dx/emit-str (assoc-in el [:attrs :xmlns] "DAV:"))))
     (element :top-level)
     (element ::D/local-root {}
              (element :top-level))))

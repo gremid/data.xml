@@ -1,12 +1,17 @@
 (ns gremid.data.xml.examples
   (:require [gremid.data.xml :as dx]))
 
-(dx/parse-str "<root/>")
-;; => {:tag :root, :attrs {}, :content ()}
+(dx/parse "<root/>")
+;; => {:tag :-document,
+;;     :attrs {:encoding nil, :standalone nil, :system-id nil},
+;;     :content ({:tag :root, :attrs {}, :content ()})}
 
 (with-open [r (java.io.StringReader. "<a><b>c</b></a>")]
   (dx/parse r))
-;; => {:tag :a, :attrs {}, :content ({:tag :b, :attrs {}, :content ("c")})}
+;; => {:tag :-document,
+;;     :attrs {:encoding nil, :standalone nil, :system-id nil},
+;;     :content
+;;     ({:tag :a, :attrs {}, :content ({:tag :b, :attrs {}, :content ("c")})})}
 
 (with-open [r (java.io.StringReader. "<a><b>c</b></a>")]
   (dx/emit-str (dx/parse r)))
@@ -32,9 +37,10 @@
 (dx/emit-str
  (dx/sexp-as-element
   [::tei/text {:xmlns "http://www.tei-c.org/ns/1.0"}
-   [:-comment "CDATA and comments can be emitted"]
-   [:-cdata "<--"]]))
-;; => "<?xml version=\"1.0\" encoding=\"UTF-8\"?><text xmlns=\"http://www.tei-c.org/ns/1.0\"><!--CDATA and comments can be emitted--><![CDATA[<--]]></text>"
+   [::tei/p
+    [:-comment "CDATA and comments can be emitted"]
+    [:-cdata "<--"]]]))
+;; => "<?xml version=\"1.0\"?><text xmlns=\"http://www.tei-c.org/ns/1.0\"><p><!--CDATA and comments can be emitted--><![CDATA[<--]]></p></text>"
 
-(-> (dx/parse-str "<root/>") (meta) ::dx/location-info)
+(-> (dx/parse "<root/>") (meta) ::dx/location-info)
 ;; => {:character-offset 0, :column-number 1, :line-number 1}

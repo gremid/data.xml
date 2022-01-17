@@ -2,60 +2,66 @@
   "Tests for reading [:tag {:attr 'value} body*] as XML."
   (:require
    [clojure.test :refer [deftest is testing]]
-   [gremid.data.xml :refer [sexp-as-element sexps-as-fragment emit-str]]
-   [gremid.data.xml.util :refer [lazy-parse* element cdata xml-comment]]))
+   [gremid.data.xml :as dx]
+   [gremid.data.xml.util :refer [cdata element xml-comment]]))
 
 (deftest as-element
-  (let [xml-input "<tag attr=\"value\"><body /></tag>"
-        sexp-input [:tag {:attr "value"} :body]]
-    (is (= (lazy-parse* xml-input)
-           (sexp-as-element sexp-input)))))
+  (is (= (dx/parse "<tag attr=\"value\"><body /></tag>")
+         (dx/sexp-as-element
+          [:-document
+           {:encoding nil :standalone nil :system-id nil}
+           [:tag {:attr "value"}
+            :body]]))))
 
 (deftest as-fragment
   (let [input (list [:tag1 "stuff"]
                     [:tag2 "other"])]
-    (is (= (sexps-as-fragment input)
-           (map sexp-as-element input)))
-    (is (thrown? Exception (sexp-as-element input)))))
+    (is (= (dx/sexps-as-fragment input)
+           (map dx/sexp-as-element input)))
+    (is (thrown? Exception (dx/sexp-as-element input)))))
 
 (deftest with-cdata
-  (let [xml-input  (element :tag {:attr "value"}
-                            (element :body {}
-                                     (cdata "not parsed <stuff")))
-        sexp-input [:tag {:attr "value"}
-                    [:body {}
-                     [:-cdata "not parsed <stuff"]]]]
-    (is (= xml-input
-           (sexp-as-element sexp-input)))))
+  (is (= (->> (cdata "not parsed <stuff")
+              (element :body {})
+              (element :tag {:attr "value"}))
+         (dx/sexp-as-element
+          [:tag {:attr "value"}
+           [:body {}
+            [:-cdata "not parsed <stuff"]]]))))
 
 (deftest with-multiple-cdata
   (testing "separate cdata"
-    (let [xml-input (element :tag {:attr "value"}
-                             (element :body {}
-                                      (cdata "not parsed <stuff")
-                                      (cdata "more not parsed <stuff")))
-          sexp-input [:tag {:attr "value"} [:body {}
-                                            (list [:-cdata "not parsed <stuff"]
-                                                  [:-cdata "more not parsed <stuff"])]]]
-      (is (= xml-input
-             (sexp-as-element sexp-input)))))
+    (is (= (element
+            :tag {:attr "value"}
+            (element
+             :body {}
+             (cdata "not parsed <stuff")
+             (cdata "more not parsed <stuff")))
+           (dx/sexp-as-element
+            [:tag {:attr "value"}
+             [:body {}
+              (list [:-cdata "not parsed <stuff"]
+                    [:-cdata "more not parsed <stuff"])]]))))
   (testing "cdata with embedded ]]>"
-    (let [xml-input (element :tag {:attr "value"}
-                             (element :body {}
-                                      (cdata "not parsed <stuff]]")
-                                      (cdata ">more not parsed <stuff")))
-          sexp-input [:tag {:attr "value"}
-                      [:body {}
-                       [:-cdata "not parsed <stuff]]"]
-                       [:-cdata ">more not parsed <stuff"]]]]
-      (is (= (emit-str xml-input)
-             (emit-str (sexp-as-element sexp-input)))))))
+    (is (= (dx/emit-str (element
+                      :tag {:attr "value"}
+                      (element
+                       :body {}
+                       (cdata "not parsed <stuff]]")
+                       (cdata ">more not parsed <stuff"))))
+           (dx/emit-str (dx/sexp-as-element
+                      [:tag {:attr "value"}
+                       [:body {}
+                        [:-cdata "not parsed <stuff]]"]
+                        [:-cdata ">more not parsed <stuff"]]]))))))
 
 (deftest with-comment
-  (let [xml-input (element :tag {:attr "value"}
-                           (element :body {} (xml-comment "comment <stuff<here<")))
-        sexp-input [:tag {:attr "value"}
-                    [:body {}
-                     [:-comment "comment <stuff<here<"]]]]
-    (is (= xml-input
-           (sexp-as-element sexp-input)))))
+  (is (= (element
+          :tag {:attr "value"}
+          (element
+           :body {}
+           (xml-comment "comment <stuff<here<")))
+         (dx/sexp-as-element
+          [:tag {:attr "value"}
+           [:body {}
+            [:-comment "comment <stuff<here<"]]]))))

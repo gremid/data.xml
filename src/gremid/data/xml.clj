@@ -2,16 +2,13 @@
   "Functions to parse XML into lazy sequences and lazy trees and emit these as
   text."
   (:require
-   [gremid.data.xml.emit :refer [string-writer write-document]]
-   [gremid.data.xml.name :refer [clj-ns-name separate-xmlns uri-symbol]]
-   [gremid.data.xml.parse :refer [make-stream-reader pull-seq string-source]]
-   [gremid.data.xml.sexp :refer [as-elements]]
-   [gremid.data.xml.pu-map :as pu]
-   [gremid.data.xml.tree :refer [event-tree flatten-elements]])
+   [gremid.data.xml.event :as dx.event]
+   [gremid.data.xml.io :as dx.io]
+   [gremid.data.xml.name :as dx.name]
+   [gremid.data.xml.sexp :as dx.sexp]
+   [gremid.data.xml.tree :as dx.tree])
   (:import
-   (java.io StringReader Writer)
-   (javax.xml.transform OutputKeys Transformer TransformerFactory)
-   (javax.xml.transform.stream StreamResult StreamSource)))
+   (javax.xml.stream XMLEventWriter)))
 
 (defn alias-uri
   "Define a Clojure namespace aliases for xmlns uris.
@@ -32,8 +29,8 @@
   [& ans]
   (loop [[a n & rst :as ans] ans]
     (when (seq ans)
-      (let [xn (uri-symbol n)
-            al (symbol (clj-ns-name a))]
+      (let [xn (dx.name/uri-symbol n)
+            al (symbol (dx.name/clj-ns-name a))]
         (create-ns xn)
         (alias al xn)
         (recur rst)))))
@@ -51,8 +48,8 @@
    To provide XML conversion for your own data types, extend the AsElements
    protocol to them."
   ([] nil)
-  ([sexp] (as-elements sexp))
-  ([sexp & sexps] (mapcat as-elements (cons sexp sexps))))
+  ([sexp] (dx.sexp/as-elements sexp))
+  ([sexp & sexps] (mapcat dx.sexp/as-elements (cons sexp sexps))))
 
 (defn sexp-as-element
   "Convert a single sexp into an Element"
@@ -64,160 +61,52 @@
         "Cannot have multiple root elements; try creating a fragment instead")))
     root))
 
-(defn element-nss
-  "Get xmlns environment from element"
-  [{:keys [attrs] :as element}]
-  (pu/merge-prefix-map
-   (-> element meta :gremid.data.xml/nss)
-   (second (separate-xmlns attrs))))
-
-(def ^:private ^:const parser-opts-arg
-  '{:keys [include-node? location-info
-           coalescing supporting-external-entities
-           allocator namespace-aware replacing-entity-references
-           validating reporter resolver support-dtd]
-    :or {include-node? #{:element :characters}
-         location-info true
-         coalescing true
-         supporting-external-entities false}})
-
-(defn event-seq
-  "Parses an XML input source into a lazy sequence of pull events.
-
-Input source can be a java.io.InputStream or java.io.Reader
-
-Options:
-
-  :include-node? subset of #{:element :characters :comment}, default #{:element :characters}
-  :location-info pass false to skip generating location meta data, default true
-
-See https://docs.oracle.com/javase/8/docs/api/javax/xml/stream/XMLInputFactory.html
-for documentation on xml options. These are the defaults:
-
-  {:allocator                    nil      ; XMLInputFactory/ALLOCATOR
-   :coalescing                   true     ; XMLInputFactory/IS_COALESCING
-   :namespace-aware              true     ; XMLInputFactory/IS_NAMESPACE_AWARE
-   :replacing-entity-references  true     ; XMLInputFactory/IS_REPLACING_ENTITY_REFERENCES
-   :supporting-external-entities false    ; XMLInputFactory/IS_SUPPORTING_EXTERNAL_ENTITIES
-   :validating                   false    ; XMLInputFactory/IS_VALIDATING
-   :reporter                     nil      ; XMLInputFactory/REPORTER
-   :resolver                     nil      ; XMLInputFactory/RESOLVER
-   :support-dtd                  true     ; XMLInputFactory/SUPPORT_DTD
-   }"
-  {:arglists (list ['source parser-opts-arg])}
-  [source opts]
-  (let [props* (merge {:include-node? #{:element :characters}
-                       :coalescing true
-                       :supporting-external-entities false
-                       :location-info true}
-                      opts)]
-    (pull-seq (make-stream-reader props* source)
-              props*
-              nil)))
-
 (defn parse
-  "Parses an XML input source into a a tree of Element records.
-The element tree is realized lazily, so huge XML files can be streamed through a depth-first tree walk.
+  "Parses an XML input source into a a tree of nodes.
 
-Input source can be a java.io.InputStream or java.io.Reader
-
-Options:
-
-  :include-node? subset of #{:element :characters :comment}, default #{:element :characters}
-  :location-info pass false to skip generating location meta data, default true
-
-See https://docs.oracle.com/javase/8/docs/api/javax/xml/stream/XMLInputFactory.html
-for documentation on xml options. These are the defaults:
-
-  {:allocator                    nil      ; XMLInputFactory/ALLOCATOR
-   :coalescing                   true     ; XMLInputFactory/IS_COALESCING
-   :namespace-aware              true     ; XMLInputFactory/IS_NAMESPACE_AWARE
-   :replacing-entity-references  true     ; XMLInputFactory/IS_REPLACING_ENTITY_REFERENCES
-   :supporting-external-entities false    ; XMLInputFactory/IS_SUPPORTING_EXTERNAL_ENTITIES
-   :validating                   false    ; XMLInputFactory/IS_VALIDATING
-   :reporter                     nil      ; XMLInputFactory/REPORTER
-   :resolver                     nil      ; XMLInputFactory/RESOLVER
-   :support-dtd                  true     ; XMLInputFactory/SUPPORT_DTD
-   }"
-  {:arglists (list ['source '& parser-opts-arg])}
-  [source & {:as opts}]
-  (event-tree (event-seq source opts)))
-
-(defn parse-str
-  "Parses an XML String into a a tree of Element records.
-
-Options:
-
-  :include-node? subset of #{:element :characters :comment}, default #{:element :characters}
-  :location-info pass false to skip generating location meta data, default true
-
-See https://docs.oracle.com/javase/8/docs/api/javax/xml/stream/XMLInputFactory.html
-for documentation on xml options. These are the defaults:
-
-  {:allocator                    nil      ; XMLInputFactory/ALLOCATOR
-   :coalescing                   true     ; XMLInputFactory/IS_COALESCING
-   :namespace-aware              true     ; XMLInputFactory/IS_NAMESPACE_AWARE
-   :replacing-entity-references  true     ; XMLInputFactory/IS_REPLACING_ENTITY_REFERENCES
-   :supporting-external-entities false    ; XMLInputFactory/IS_SUPPORTING_EXTERNAL_ENTITIES
-   :validating                   false    ; XMLInputFactory/IS_VALIDATING
-   :reporter                     nil      ; XMLInputFactory/REPORTER
-   :resolver                     nil      ; XMLInputFactory/RESOLVER
-   :support-dtd                  true     ; XMLInputFactory/SUPPORT_DTD
-   }"
-  {:arglists (list ['string '& parser-opts-arg])}
-  [s & opts]
-  (apply parse (string-source s) opts))
+  The element tree is realized lazily, so huge XML files can be streamed through
+  a depth-first tree walk."
+  ([input]
+   (parse dx.io/round-tripping-input-factory input))
+  ([input-factory input]
+   (dx.tree/->tree (iterator-seq (dx.io/event-reader input-factory input)))))
 
 (defn emit
-  "Prints the given Element tree as XML text to stream.
-   Options:
-    :encoding <str>          Character encoding to use
-    :doctype  <str>          Document type (DOCTYPE) declaration to use"
-  [e writer & {:as opts}]
-  (write-document writer (flatten-elements [e]) opts))
+  "Prints the given node tree as XML text to the output."
+  ([node output]
+   (emit dx.io/conforming-output-factory node output))
+  ([output-factory node output]
+  (let [^XMLEventWriter ew (dx.io/event-writer output-factory output)]
+    (binding [dx.name/*gen-prefix-counter* 0]
+      (doseq [event (dx.event/->events node)]
+        (.add ew event))))
+   node))
 
 (defn emit-str
-  "Emits the Element to String and returns it.
-   Options:
-    :encoding <str>          Character encoding to use
-    :doctype  <str>          Document type (DOCTYPE) declaration to use"
-  ([e & opts]
-   (let [sw (string-writer)]
-     (apply emit e sw opts)
-     (str sw))))
-
-(defn ^Transformer indenting-transformer []
-  (doto (-> (TransformerFactory/newInstance) .newTransformer)
-    (.setOutputProperty OutputKeys/INDENT "yes")
-    (.setOutputProperty OutputKeys/METHOD "xml")
-    (.setOutputProperty "{http://xml.apache.org/xslt}indent-amount" "2")
-    ;; print newline after preamble
-    (.setOutputProperty OutputKeys/DOCTYPE_PUBLIC "yes")))
-
-(defn indent-xml
-  [s ^Writer writer]
-  (let [source (-> s StringReader. StreamSource.)
-        result (StreamResult. writer)]
-    (.transform (indenting-transformer) source result)))
+  "Emits the given node tree as an XML text string."
+  ([node]
+   (with-out-str
+     (emit node *out*)))
+  ([output-factory node]
+   (with-out-str
+     (emit output-factory node *out*))))
 
 (defn indent
-  "Emits the XML and indents the result.  WARNING: this is slow
-   it will emit the XML and read it in again to indent it.  Intended for
-   debugging/testing only."
-  [e writer & opts]
-  (indent-xml (apply emit-str e opts) writer))
+  ([output-factory node output]
+   (let [buf (dx.io/new-document)]
+     (emit output-factory node buf)
+     (dx.io/indent buf output))
+   node)
+  ([node output]
+   (let [buf (dx.io/new-document)]
+     (emit node buf)
+     (dx.io/indent buf output))
+   node))
 
 (defn indent-str
-  "Emits the XML and indents the result.  Writes the results to a String and returns it"
-  [e & opts]
-  (let [sw (string-writer)]
-    (apply indent e sw opts)
-    (str sw)))
-
-;; TODO implement ~normalize to simulate an emit-parse roundtrip
-;;      in terms of xmlns environment and keywords vs qnames
-
-(comment
-  (emit-str
-   (parse-str "<?xml version=\"1.0\"?><?test?><root/><?test2?>"
-              :include-node? #{:element :pi :characters})))
+  ([output-factory node]
+   (with-out-str
+     (indent output-factory node *out*)))
+  ([node]
+   (with-out-str
+     (indent node *out*))))

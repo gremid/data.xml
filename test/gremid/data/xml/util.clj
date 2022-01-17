@@ -1,7 +1,7 @@
 (ns gremid.data.xml.util
   "Tests for emit to print XML text."
   (:require
-   [gremid.data.xml :as xml :refer [parse]])
+   [gremid.data.xml :as dx])
   (:import
    (java.io ByteArrayInputStream)))
 
@@ -10,7 +10,7 @@
   (ByteArrayInputStream. (.getBytes x "UTF-8")))
 
 (def lazy-parse*
-  (comp parse test-stream))
+  (comp dx/parse test-stream))
 
 (defn element
   ([tag]
