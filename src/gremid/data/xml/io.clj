@@ -29,8 +29,12 @@
   String
   (as-source [^String v] (as-source (StringReader. v))))
 
+(defn ^XMLInputFactory2 new-input-factory
+  []
+  (XMLInputFactory2/newInstance))
+
 (def round-tripping-input-factory
-  (doto (XMLInputFactory2/newInstance) (.configureForRoundTripping)))
+  (doto (new-input-factory) (.configureForRoundTripping)))
 
 (defn ^XMLEventReader event-reader
   ([^InputStream input]

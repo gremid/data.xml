@@ -4,37 +4,34 @@
   (:require
    [clojure.java.io :as io]
    [clojure.test :refer [deftest is testing]]
-   [gremid.data.xml :refer [parse-str emit-str]])
+   [gremid.data.xml :as dx]
+   [gremid.data.xml.io :as dx.io])
   (:import
-   (javax.xml.stream XMLStreamException)))
+   (javax.xml.stream XMLInputFactory)))
 
-(defn vulnerable-input
+(def vulnerable-input
   "Creates an XML with an external entity referring to the given URL"
-  [file-url]
-  (str "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>"
+  (str "<?xml version=\"1.0\"?>"
        "<!DOCTYPE foo ["
        "  <!ELEMENT foo ANY >"
-       "  <!ENTITY xxe SYSTEM \"" file-url  "\" >]>"
+       "  <!ENTITY xxe SYSTEM \"" (io/resource "secret.txt")  "\" >]>"
        "<foo>&xxe;</foo>"))
 
-(defn secret-file
-  "Returns the URL to the secret file containing the server root password"
-  []
-  (io/resource "secret.txt"))
-
-(defn parse-vulnerable-file
-  "Parses the vulnerable file, optionally passing the given options to the parser"
-  ([]        (parse-str (vulnerable-input (secret-file))))
-  ([& options] (apply parse-str (vulnerable-input (secret-file)) options)))
 
 (deftest prevent-xxe-by-default
   (testing "To prevent XXE attacks, exernal entities by default do not resolve"
-    (is (thrown? XMLStreamException (emit-str (parse-vulnerable-file))))))
+    (is (nil? (re-find #"root_password"
+                       (-> vulnerable-input dx/parse dx/emit-str))))))
+
+(def insecure-input-factory
+  (doto (dx.io/new-input-factory)
+    (.setProperty XMLInputFactory/IS_REPLACING_ENTITY_REFERENCES true)
+    (.setProperty XMLInputFactory/IS_SUPPORTING_EXTERNAL_ENTITIES true)))
 
 (deftest allow-external-entities-if-required
   (testing "If explicitly enabled, external entities are property resolved"
-    (let [parsed (parse-vulnerable-file :supporting-external-entities true)
-          expected {:tag :foo
-                    :attrs {}
-                    :content ["root_password\n"]}]
-      (is (= expected parsed)))))
+    (is (some?
+         (re-find #"root_password"
+                  (->> vulnerable-input
+                       (dx/parse insecure-input-factory)
+                       (dx/emit-str)))))))

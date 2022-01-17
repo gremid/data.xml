@@ -3,7 +3,7 @@
    [gremid.data.xml.name :as dx.name]
    [gremid.data.xml.pu-map :as dx.pu])
   (:import
-   (javax.xml.stream.events Attribute Characters Comment EndDocument EndElement Namespace ProcessingInstruction StartDocument StartElement XMLEvent)))
+   (javax.xml.stream.events Attribute Characters Comment DTD EndDocument EndElement Namespace ProcessingInstruction StartDocument StartElement XMLEvent)))
 
 (defprotocol AsTree
   (as-parent [event content ns-env] "Must return `nil` or `false` if the event
@@ -142,6 +142,16 @@
      {:tag     :-comment
       :attrs   {}
       :content (list (.getText event))}
+     (assoc-location event)))
+
+  DTD
+  (as-parent [_ _ _])
+  (exit? [_] false)
+  (->node [^DTD event]
+    (->>
+     {:tag     :-dtd
+      :attrs   {}
+      :content (list (.getDocumentTypeDeclaration event))}
      (assoc-location event)))
 
   Object

@@ -76,7 +76,7 @@ clojure -X:test
 
 ## License
 
-Copyright 2022 Rich Hickey and [contributors](AUTHORS).
+Copyright 2022 Rich Hickey, Gregor Middell and [contributors](AUTHORS).
 
 Licensed under the [Eclipse Public
 License](http://www.opensource.org/licenses/eclipse-1.0.php).

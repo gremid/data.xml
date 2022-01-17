@@ -45,7 +45,7 @@
                     (dx.pu/assoc! "" "")
                     (as-> tpu (dx.pu/assoc! tpu (compute-prefix tpu uri nil) uri))))
               tpu)]
-    (log/spy :info (dx.pu/persistent! tpu))))
+    (dx.pu/persistent! tpu)))
 
 (def event-factory
   (XMLEventFactory2/newInstance))
@@ -64,6 +64,7 @@
            :-pi       (list (.createProcessingInstruction event-factory
                                                          (attrs :target)
                                                          (attrs :data)))
+           :-dtd      (list (.createDTD event-factory fchild))
            :-document (let [{:keys [encoding standalone]} attrs]
                         (lazy-cat
                          (list
