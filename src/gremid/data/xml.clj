@@ -71,6 +71,12 @@
   ([input-factory input]
    (dx.tree/->tree (iterator-seq (dx.io/event-reader input-factory input)))))
 
+(defn pull-all
+  "Walks the given tree of nodes, eagerly realizing all descendants."
+  [node]
+  (cond-> node
+    (:content node) (update :content #(doall (map pull-all %)))))
+
 (defn emit
   "Prints the given node tree as XML text to the output."
   ([node output]
