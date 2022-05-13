@@ -5,18 +5,18 @@
    [gremid.data.xml :as dx]
    [gremid.data.xml.name :as dx.name]
    [gremid.data.xml.pu-map :as dx.pu]
-   [gremid.data.xml.util :refer [cdata document element lazy-parse* xml-comment doc-element]]
+   [gremid.data.xml.util :refer [cdata document element emit-fragment-str parse-str xml-comment doc-element]]
    [clojure.test :refer [deftest is testing]]))
 
 (def deep-tree
-  (lazy-parse* (str "<a h=\"1\" i='2' j=\"3\">"
-                    "  t1<b k=\"4\">t2</b>"
-                    "  t3<c>t4</c>"
-                    "  t5<d>t6</d>"
-                    "  t7<e l=\"5\" m=\"6\">"
-                    "    t8<f>t10</f>t11</e>"
-                    "  t12<g>t13</g>t14"
-                    "</a>")))
+  (parse-str (str "<a h=\"1\" i='2' j=\"3\">"
+                  "  t1<b k=\"4\">t2</b>"
+                  "  t3<c>t4</c>"
+                  "  t5<d>t6</d>"
+                  "  t7<e l=\"5\" m=\"6\">"
+                  "    t8<f>t10</f>t11</e>"
+                  "  t12<g>t13</g>t14"
+                  "</a>")))
 
 (deftest test-defaults
   (testing "basic parsing"
@@ -33,22 +33,23 @@
 
   (testing "namespaced defaults"
     (let [expect (str "<?xml version=\"1.0\"?><D:bar xmlns:D=\"DAV:\" D:item=\"1\"><D:baz D:item=\"2\">done</D:baz></D:bar>")]
-      (is (= expect (dx/emit-str
+      (is (= expect (emit-fragment-str
                      (element "{DAV:}bar" {"{DAV:}item" "1" :xmlns/D "DAV:"}
                               (element "{DAV:}baz" {:xmlns.DAV%3A/item "2"} "done")))))
-      (is (= expect (dx/emit-str
+      (is (= expect (emit-fragment-str
                      {:tag "{DAV:}bar" :attrs {"{DAV:}item" "1" :xmlns/D "DAV:"}
                       :content [{:tag "{DAV:}baz" :attrs {:xmlns.DAV%3A/item "2"} :content ["done"]}]}))))))
 
 (deftest mixed-quotes
-  (is (= (lazy-parse*
+  (is (= (parse-str
           (str "<?xml version=\"1.0\"?>"
                "<mixed double=\"&quot;double&quot;quotes&quot;here&quot;\""
                " single=\"'single'quotes'here\"></mixed>"))
-         (lazy-parse*
-          (dx/emit-str (element :mixed
-                             {:single "'single'quotes'here"
-                              :double "\"double\"quotes\"here\""}))))))
+         (parse-str
+          (emit-fragment-str
+           (element :mixed
+                    {:single "'single'quotes'here"
+                     :double "\"double\"quotes\"here\""}))))))
 
 (deftest doctype
   (let [input-tree                    (dx/parse "<how-cool>cool</how-cool>")
@@ -72,18 +73,21 @@
 
 (deftest emitting-cdata
   (testing "basic cdata"
-    (is (= (str "<?xml version=\"1.0\"?>"
-                "<cdata-stuff><![CDATA[<goes><here>]]></cdata-stuff>")
-           (dx/emit-str (element :cdata-stuff {}
-                              (cdata "<goes><here>")))))))
+    (is
+     (= (str "<?xml version=\"1.0\"?>"
+             "<cdata-stuff><![CDATA[<goes><here>]]></cdata-stuff>")
+        (emit-fragment-str
+         (element :cdata-stuff {} (cdata "<goes><here>")))))))
 
 (deftest emitting-comment
-  (is (= (str "<?xml version=\"1.0\"?>"
-              "<comment-stuff>comment <!-- goes here --> not here</comment-stuff>")
-         (dx/emit-str (element :comment-stuff {}
-                                "comment "
-                                (xml-comment " goes here ")
-                                " not here")))))
+  (is
+   (= (str "<?xml version=\"1.0\"?>"
+           "<comment-stuff>comment <!-- goes here --> not here</comment-stuff>")
+      (emit-fragment-str
+       (element :comment-stuff {}
+                "comment "
+                (xml-comment " goes here ")
+                " not here")))))
 
 (deftest test-indent
   (let [nested-xml (dx/parse "<a><b><c><d>foo</d></c></b></a>")
@@ -111,16 +115,23 @@
   (is (thrown? Exception (dx/emit-str {:tag :el :attrs {:xmlns/xmlns "foo"}})))
   (is (thrown? Exception (dx/parse "<element xmlns:xmlns=\"http://www.w3.org/2000/xmlns/\" />"))
       "TODO: find out if this is standard conforming, or a bug in StAX")
-  (is (= (dx/emit-str {:tag :el :attrs {:xmlns/xmlns "http://www.w3.org/2000/xmlns/"}})
+  (is (= (emit-fragment-str
+          {:tag :el
+           :attrs {:xmlns/xmlns "http://www.w3.org/2000/xmlns/"}})
          "<?xml version=\"1.0\"?><el/>"))
-  (is (= (dx/emit-str {:tag :el :attrs {:xmlns/xml "http://www.w3.org/XML/1998/namespace" ::xml/lang "en"}})
+  (is (= (emit-fragment-str
+          {:tag :el
+           :attrs {:xmlns/xml "http://www.w3.org/XML/1998/namespace"
+                   ::xml/lang "en"}})
          "<?xml version=\"1.0\"?><el xml:lang=\"en\"/>"))
-  (is (= (dx/emit-str {:tag :el :attrs {:xml/lang "en"}})
+  (is (= (emit-fragment-str {:tag :el :attrs {:xml/lang "en"}})
          "<?xml version=\"1.0\"?><el xml:lang=\"en\"/>")))
 
 (deftest test-empty-elements
-  (is (= (dx/emit-str {:tag :a :content []}) "<?xml version=\"1.0\"?><a/>"))
-  (is (= (dx/emit-str {:tag :a :content [""]}) "<?xml version=\"1.0\"?><a></a>")))
+  (is (= (emit-fragment-str {:tag :a :content []})
+         "<?xml version=\"1.0\"?><a/>"))
+  (is (= (emit-fragment-str {:tag :a :content [""]})
+         "<?xml version=\"1.0\"?><a></a>")))
 
 (deftest test-roundtrip
   (let [remove-nss #(postwalk (fn [v] (if (:tag v) (with-meta v nil) v)) %)]

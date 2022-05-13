@@ -3,7 +3,7 @@
    [clojure.test :refer [are deftest is]]
    [gremid.data.xml :as dx]
    [gremid.data.xml.name :as dx.name]
-   [gremid.data.xml.util :refer [doc-element document element]]))
+   [gremid.data.xml.util :refer [doc-element document element emit-fragment-str]]))
 
 (dx/alias-uri
  :U "uri-u:"
@@ -29,7 +29,7 @@
 
 
 (deftest test-emit-raw
-  (are [node result] (= (dx/emit-str node) result)
+  (are [node result] (= (emit-fragment-str node) result)
     {:tag ::D/limit :attrs {:xmlns/D "DAV:"}
      :content [{:tag ::D/nresults :content ["100"]}]}
     "<?xml version=\"1.0\"?><D:limit xmlns:D=\"DAV:\"><D:nresults>100</D:nresults></D:limit>"))
@@ -59,6 +59,8 @@
 
 (deftest test-preserve-empty-ns
   (are [el] (= el (doc-element
-                   (dx/parse (dx/emit-str (assoc-in el [:attrs :xmlns] "DAV:")))))
+                   (dx/parse
+                    (emit-fragment-str
+                     (assoc-in el [:attrs :xmlns] "DAV:")))))
     (element :top-level)
     (element ::D/local-root {} (element :top-level))))

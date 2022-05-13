@@ -50,9 +50,9 @@
 (def event-factory
   (XMLEventFactory2/newInstance))
 
-(defn ->events'
+(defn ->events
   ([node]
-   (->events' dx.pu/EMPTY node))
+   (->events dx.pu/EMPTY node))
   ([parent-ns-env node]
    (if (string? node)
      (list (.createCharacters event-factory node))
@@ -76,7 +76,7 @@
                                                   (or encoding "UTF-8")
                                                   "1.0"
                                                   standalone)))
-                         (mapcat ->events' content)
+                         (mapcat ->events content)
                          (list (.createEndDocument event-factory))))
            (let [uri         (dx.name/qname-uri tag)
                  local       (dx.name/qname-local tag)
@@ -116,7 +116,7 @@
                                       (QName. local)
                                       (.iterator ^Iterable attributes)
                                       (.iterator ^Iterable namespaces))))
-              (mapcat #(->events' ns-env %) content)
+              (mapcat #(->events ns-env %) content)
               (list
                (if prefix
                  (.createEndElement event-factory
@@ -125,12 +125,3 @@
                  (.createEndElement event-factory
                                     (QName. local)
                                     (.iterator ^Iterable namespaces))))))))))))
-
-(defn ->events
-  [node]
-  (let [events (->events' node)]
-    (if (->> node :tag (= :-document))
-      events
-      (concat (list (.createStartDocument event-factory))
-              events
-              (list (.createEndDocument event-factory))))))
