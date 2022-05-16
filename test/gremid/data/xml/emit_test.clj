@@ -4,8 +4,9 @@
    [clojure.walk :refer [postwalk]]
    [gremid.data.xml :as dx]
    [gremid.data.xml.name :as dx.name]
+   [gremid.data.xml.node :refer [cdata document element xml-comment doc-element]]
    [gremid.data.xml.pu-map :as dx.pu]
-   [gremid.data.xml.util :refer [cdata document element emit-fragment-str parse-str xml-comment doc-element]]
+   [gremid.data.xml.util :refer [emit-fragment-str parse-str]]
    [clojure.test :refer [deftest is testing]]))
 
 (def deep-tree

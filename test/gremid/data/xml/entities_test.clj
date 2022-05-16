@@ -20,8 +20,10 @@
 
 (deftest prevent-xxe-by-default
   (testing "To prevent XXE attacks, exernal entities by default do not resolve"
-    (is (nil? (re-find #"root_password"
-                       (-> vulnerable-input dx/parse dx/emit-str))))))
+    (is (thrown?
+         UnsupportedOperationException
+         (re-find #"root_password"
+                  (-> vulnerable-input dx/parse dx/emit-str))))))
 
 (def insecure-input-factory
   (doto (dx.io/new-input-factory)

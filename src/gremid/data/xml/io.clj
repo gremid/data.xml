@@ -3,7 +3,7 @@
    (com.ctc.wstx.api WstxOutputProperties)
    (java.io InputStream OutputStream Reader StringReader Writer)
    (javax.xml.parsers DocumentBuilder DocumentBuilderFactory)
-   (javax.xml.stream XMLEventReader XMLEventWriter XMLInputFactory XMLOutputFactory)
+   (javax.xml.stream XMLEventReader XMLInputFactory XMLOutputFactory)
    (javax.xml.transform OutputKeys Result Source Transformer TransformerFactory)
    (javax.xml.transform.dom DOMResult DOMSource)
    (javax.xml.transform.stream StreamResult StreamSource)
@@ -29,17 +29,17 @@
   String
   (as-source [^String v] (as-source (StringReader. v))))
 
-(defn ^XMLInputFactory2 new-input-factory
-  []
-  (XMLInputFactory2/newInstance))
+(defn new-input-factory
+  (^XMLInputFactory2 []
+   (XMLInputFactory2/newInstance)))
 
 (def round-tripping-input-factory
   (doto (new-input-factory) (.configureForRoundTripping)))
 
-(defn ^XMLEventReader event-reader
-  ([^InputStream input]
+(defn event-reader
+  (^XMLEventReader [^InputStream input]
    (event-reader round-tripping-input-factory input))
-  ([^XMLInputFactory factory input]
+  (^XMLEventReader [^XMLInputFactory factory input]
    (.createXMLEventReader factory ^Source (as-source input))))
 
 (defprotocol AsResult
@@ -59,11 +59,11 @@
   (as-result [^Writer v] (StreamResult. v)))
 
 (def conforming-output-factory
-  (doto (XMLOutputFactory2/newInstance)
+  (doto ^XMLOutputFactory2 (XMLOutputFactory2/newInstance)
     (.configureForXmlConformance)
     (.setProperty WstxOutputProperties/P_USE_DOUBLE_QUOTES_IN_XML_DECL true)))
 
-(defn ^XMLEventWriter event-writer
+(defn event-writer
   ([output]
    (event-writer conforming-output-factory output))
   ([^XMLOutputFactory factory output]
@@ -82,14 +82,14 @@
 (def ^TransformerFactory transformer-factory
   (TransformerFactory/newInstance))
 
-(defn ^Transformer indenting-transformer
-  []
-  (doto (.newTransformer transformer-factory)
-    (.setOutputProperty OutputKeys/INDENT "yes")
-    (.setOutputProperty OutputKeys/METHOD "xml")
-    (.setOutputProperty "{http://xml.apache.org/xslt}indent-amount" "2")
-    ;; print newline after preamble
-    (.setOutputProperty OutputKeys/DOCTYPE_PUBLIC "yes")))
+(defn indenting-transformer
+  (^Transformer []
+   (doto (.newTransformer transformer-factory)
+     (.setOutputProperty OutputKeys/INDENT "yes")
+     (.setOutputProperty OutputKeys/METHOD "xml")
+     (.setOutputProperty "{http://xml.apache.org/xslt}indent-amount" "2")
+     ;; print newline after preamble
+     (.setOutputProperty OutputKeys/DOCTYPE_PUBLIC "yes"))))
 
 (defn indent
   [input output]

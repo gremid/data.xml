@@ -12,17 +12,20 @@
    [assoc! dissoc! transient persistent! get assoc merge])
   (:require
    [clojure.core :as core]
-   [gremid.data.xml.name :as name]
-   [clojure.string :as str]))
+   [clojure.tools.logging :as log]
+   [gremid.data.xml.name :as dx.name]
+   [clojure.string :as str])
+  (:import
+   (javax.xml.stream.events Namespace XMLEvent)))
 
 (def prefix-map :p->u)
 (def uri-map    :u->ps)
 
 ;; TODO replace this with a deftype for memory savings
-(def EMPTY {:u->ps {name/xml-uri ["xml"]
-                    name/xmlns-uri ["xmlns"]}
-            :p->u {"xml" name/xml-uri
-                   "xmlns" name/xmlns-uri}})
+(def EMPTY {:u->ps {dx.name/xml-uri ["xml"]
+                    dx.name/xmlns-uri ["xmlns"]}
+            :p->u {"xml" dx.name/xml-uri
+                   "xmlns" dx.name/xmlns-uri}})
 
 ;; TODO implement valid? with internal consistency check
 
@@ -52,7 +55,7 @@
     (core/dissoc! u->ps uri)))
 
 (defn assoc! [{:as put :keys [p->u u->ps]} prefix uri]
-  (name/legal-xmlns-binding! prefix uri)
+  (dx.name/legal-xmlns-binding! prefix uri)
   (let [prefix* (str prefix)
         prev-uri (core/get p->u prefix*)]
     (core/assoc! put
@@ -104,3 +107,51 @@
   "Merge two pu-maps, left to right"
   [pu {:keys [:p->u]}]
   (merge-prefix-map pu p->u))
+
+(defn compute-prefix
+  [tpu uri suggested]
+  (or (get-prefix tpu uri)
+      (loop [prefix (or suggested (dx.name/gen-prefix))]
+        (if (get tpu prefix)
+          (recur (dx.name/gen-prefix))
+          prefix))))
+
+(defn compute
+  [pu elem-pu attr-uris tag-uri tag-local]
+  (let [tpu (transient pu)
+        ;; add namespaces from current environment
+        tpu (reduce-kv (fn [tpu ns-attr uri]
+                         (assert (string? ns-attr) (pr-str ns-attr uri))
+                         (assoc! tpu
+                                    (compute-prefix tpu uri ns-attr)
+                                    uri))
+                       tpu (prefix-map elem-pu))
+        ;; add implicit namespaces used by tag, attrs
+        tpu (reduce (fn [tpu uri]
+                      (assoc! tpu (compute-prefix tpu uri nil) uri))
+                    tpu (if (str/blank? tag-uri)
+                          attr-uris
+                          (cons tag-uri attr-uris)))
+        ;; rename default namespace, if tag is global (not in a namespace)
+        tpu (if-let [uri (and (str/blank? tag-uri) (get tpu ""))]
+              (do
+                (log/debugf (str "Default `xmlns=\"%s\"` had to be replaced "
+                                 "with a `xmlns=\"\"` because of global "
+                                 "element `%s`")
+                            uri tag-local)
+                (-> tpu
+                    (assoc! "" "")
+                    (as-> tpu (assoc! tpu (compute-prefix tpu uri nil) uri))))
+              tpu)]
+    (persistent! tpu)))
+
+(defn child-nss
+  [pu ^XMLEvent event]
+  (if (.isStartElement event)
+    (persistent!
+     (reduce
+      (fn [ns-env ^Namespace ns]
+        (assoc! ns-env (.getPrefix ns) (.getNamespaceURI ns)))
+      (transient pu)
+      (iterator-seq (.getNamespaces event))))
+    pu))

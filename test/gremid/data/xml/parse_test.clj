@@ -4,7 +4,7 @@
    [clojure.test :refer [are deftest is]]
    [gremid.data.xml :as dx]
    [gremid.data.xml.name :as dx.name]
-   [gremid.data.xml.util :refer [cdata dtd element document pi xml-comment doc-element]]))
+   [gremid.data.xml.node :refer [cdata dtd element document pi xml-comment doc-element]]))
 
 (deftest test-node-equivalence
   (are [repr1 repr2] (and (is (= repr1 repr2))

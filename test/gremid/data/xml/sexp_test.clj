@@ -3,7 +3,7 @@
   (:require
    [clojure.test :refer [deftest is testing]]
    [gremid.data.xml :as dx]
-   [gremid.data.xml.util :refer [cdata element xml-comment]]))
+   [gremid.data.xml.node :refer [cdata element xml-comment]]))
 
 (deftest as-element
   (is (= (dx/parse "<tag attr=\"value\"><body /></tag>")

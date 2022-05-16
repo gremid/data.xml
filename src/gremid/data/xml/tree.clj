@@ -1,160 +1,58 @@
 (ns gremid.data.xml.tree
   (:require
-   [gremid.data.xml.name :as dx.name]
-   [gremid.data.xml.pu-map :as dx.pu])
-  (:import
-   (javax.xml.stream.events Attribute Characters Comment DTD EndDocument EndElement Namespace ProcessingInstruction StartDocument StartElement XMLEvent)))
+   [gremid.data.xml.event :as dx.event]
+   [gremid.data.xml.node :as dx.node]
+   [gremid.data.xml.pu-map :as dx.pu]))
 
-(defprotocol AsTree
-  (as-parent [event content ns-env] "Must return `nil` or `false` if the event
-  is not an enter-sub-tree event. Any other return value will become a sub-tree
-  of the output tree and should normally contain in some way the `content`.")
+(defn chars-node->str
+  [{:keys [tag] :as node}]
+  (if (= :-chars tag)
+    (-> node :content first)
+    node))
 
-  (exit? [event] "Returns `true` for any event that marks the end of a
-  sub-tree.")
+(defn str->chars-node
+  [node]
+  (if (string? node)
+    {:tag     :-chars
+     :attrs   {}
+     :content (list node)}
+    node))
 
-  (->node [event] "Called on every event that is neither parent nor exit, and
-  its return value will become a node of the output tree."))
+(defn events->tree'
+  [events nss]
+  (lazy-seq
+   (when-let [[event] (seq events)]
+     (let [more (rest events)]
+       (if (dx.event/end? event)
+         (cons nil more)
+         (let [start? (dx.event/start? event)
+               node   (dx.node/event->node event)
+               node   (chars-node->str node)
+               obj?   (map? node)
+               nss'   (cond-> nss
+                        start? (dx.pu/child-nss event))
+               tree   (events->tree' more nss')
+               node   (cond-> node
+                        obj?   (with-meta (dx.event/->metadata event nss'))
+                        start? (assoc :content (lazy-seq (first tree))))
+               tree'  (if start?
+                        (events->tree' (lazy-seq (rest tree)) nss')
+                        tree)]
+           (cons (cons node (lazy-seq (first tree')))
+                 (lazy-seq (rest tree')))))))))
 
-
-(defn seq-tree
-  "Takes a seq of events that logically represents a tree by each event being one
-  of: enter-sub-tree event, exit-sub-tree event, or node event.
-
-  Returns a lazy sequence whose first element is a sequence of sub-trees and
-  whose remaining elements are events that are not siblings or descendants of
-  the initial event."
-  ([coll]
-   (seq-tree coll dx.pu/EMPTY))
-  ([coll ns-env]
-   (lazy-seq
-    (when-let [[event] (seq coll)]
-      (let [more (rest coll)]
-        (if (exit? event)
-          (cons nil more)
-          (let [tree (seq-tree more ns-env)]
-            (if-let [p (as-parent event (lazy-seq (first tree)) ns-env)]
-              (let [ns-env (get (meta p) :gremid.data.xml/nss)
-                    subtree (seq-tree (lazy-seq (rest tree)) ns-env)]
-                (cons (cons p (lazy-seq (first subtree)))
-                      (lazy-seq (rest subtree))))
-              (cons (cons (->node event) (lazy-seq (first tree)))
-                    (lazy-seq (rest tree)))))))))))
-
-(defn ->tree
-  "Returns a lazy tree of Element objects for the given seq of Event
-  objects. See source-seq and parse."
+(defn events->tree
   [events]
-  (ffirst (seq-tree events)))
+  (ffirst (events->tree' events dx.pu/EMPTY)))
 
-;; "Parse" events off the in-memory representation
-
-(defn assoc-location
-  [^XMLEvent event o]
-  (let [location (.getLocation event)]
-    (vary-meta o assoc :gremid.data.xml/location-info
-               {:character-offset (.getCharacterOffset location)
-                :column-number    (.getColumnNumber location)
-                :line-number      (.getLineNumber location)})))
-
-(extend-protocol AsTree
-  StartDocument
-  (as-parent [^StartDocument event content ns-env]
-    (->>
-     (with-meta
-       {:tag     :-document
-        :attrs   {:encoding   (when (.encodingSet event)
-                              (.getCharacterEncodingScheme event))
-                  :standalone (when (.standaloneSet event)
-                                (.isStandalone event))
-                  :system-id  (.getSystemId event)}
-        :content content}
-       {:gremid.data.xml/nss ns-env})
-     (assoc-location event)))
-  (exit? [event]
-    false)
-  (->node [event])
-
-  StartElement
-  (as-parent [^StartElement event content ns-env]
-    (->>
-     (with-meta
-       {:tag     (dx.name/as-qname (.getName event))
-        :attrs   (persistent!
-                  (reduce
-                   (fn [m ^Attribute attr]
-                     (assoc! m (dx.name/as-qname (.getName attr))
-                             (.getValue attr)))
-                   (transient {})
-                   (iterator-seq (.getAttributes event))))
-        :content content}
-       {:gremid.data.xml/nss (dx.pu/persistent!
-                              (reduce
-                               (fn [ns-env ^Namespace ns]
-                                 (dx.pu/assoc! ns-env
-                                            (.getPrefix ns)
-                                            (.getNamespaceURI ns)))
-                               (dx.pu/transient ns-env)
-                               (iterator-seq (.getNamespaces event))))})
-     (assoc-location event)))
-  (exit? [_] false)
-  (->node [_])
-
-  EndDocument
-  (as-parent [_ _ _])
-  (exit? [_] true)
-  (->node [_])
-
-  EndElement
-  (as-parent [_ _ _])
-  (exit? [_] true)
-  (->node [_])
-
-  Characters
-  (as-parent [_ _ _])
-  (exit? [_] false)
-  (->node [^Characters event]
-    (let [text (.getData event)]
-      (if (.isCData event)
-        (->>
-         {:tag     :-cdata
-          :attrs   {}
-          :content (list text)}
-         (assoc-location event))
-        text)))
-
-  ProcessingInstruction
-  (as-parent [_ _ _])
-  (exit? [_] false)
-  (->node [^ProcessingInstruction event]
-    (->>
-     {:tag     :-pi
-      :attrs   {:target (.getTarget event)
-                :data   (.getData event)}
-      :content (list)}
-     (assoc-location event)))
-
-  Comment
-  (as-parent [_ _ _])
-  (exit? [_] false)
-  (->node [^Comment event]
-    (->>
-     {:tag     :-comment
-      :attrs   {}
-      :content (list (.getText event))}
-     (assoc-location event)))
-
-  DTD
-  (as-parent [_ _ _])
-  (exit? [_] false)
-  (->node [^DTD event]
-    (->>
-     {:tag     :-dtd
-      :attrs   {}
-      :content (list (.getDocumentTypeDeclaration event))}
-     (assoc-location event)))
-
-  Object
-  (as-parent [_ _ _])
-  (exit? [_] false)
-  (->node [event] event))
+(defn tree->events
+  ([node]
+   (tree->events node dx.pu/EMPTY))
+  ([node ns-env]
+   (let [node        (str->chars-node node)
+         [start end ns-env'] (dx.event/->objs node ns-env)]
+     (when start
+       (lazy-cat
+        [start]
+        (mapcat #(tree->events % ns-env') (when end (:content node)))
+        (some-> end list))))))

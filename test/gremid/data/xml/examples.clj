@@ -36,10 +36,11 @@
 
 (dx/emit-str
  (dx/sexp-as-element
-  [::tei/text {:xmlns "http://www.tei-c.org/ns/1.0"}
-   [::tei/p
-    [:-comment "CDATA and comments can be emitted"]
-    [:-cdata "<--"]]]))
+  [:-document
+   [::tei/text {:xmlns "http://www.tei-c.org/ns/1.0"}
+    [::tei/p
+     [:-comment "CDATA and comments can be emitted"]
+     [:-cdata "<--"]]]]))
 ;; => "<?xml version=\"1.0\"?><text xmlns=\"http://www.tei-c.org/ns/1.0\"><p><!--CDATA and comments can be emitted--><![CDATA[<--]]></p></text>"
 
 (-> (dx/parse "<root/>") (meta) ::dx/location-info)

@@ -2,13 +2,14 @@
   "Functions to parse XML into lazy sequences and lazy trees and emit these as
   text."
   (:require
-   [gremid.data.xml.event :as dx.event]
    [gremid.data.xml.io :as dx.io]
    [gremid.data.xml.name :as dx.name]
+   [gremid.data.xml.seq :as dx.seq]
    [gremid.data.xml.sexp :as dx.sexp]
    [gremid.data.xml.tree :as dx.tree])
   (:import
-   (javax.xml.stream XMLEventWriter)))
+   (javax.xml.stream XMLEventWriter)
+   (javax.xml.stream.events XMLEvent)))
 
 (defn alias-uri
   "Define a Clojure namespace aliases for xmlns uris.
@@ -61,6 +62,13 @@
         "Cannot have multiple root elements; try creating a fragment instead")))
     root))
 
+(defn ->seq
+  "Parses an XML input source into a (lazy) seq of XML events."
+  ([input]
+   (->seq dx.io/round-tripping-input-factory input))
+  ([input-factory input]
+   (dx.seq/->seq (iterator-seq (dx.io/event-reader input-factory input)))))
+
 (defn parse
   "Parses an XML input source into a a tree of nodes.
 
@@ -69,7 +77,9 @@
   ([input]
    (parse dx.io/round-tripping-input-factory input))
   ([input-factory input]
-   (dx.tree/->tree (iterator-seq (dx.io/event-reader input-factory input)))))
+   (dx.tree/events->tree
+    (iterator-seq
+     (dx.io/event-reader input-factory input)))))
 
 (defn pull-all
   "Walks the given tree of nodes, eagerly realizing all descendants."
@@ -82,10 +92,10 @@
   ([node output]
    (emit dx.io/conforming-output-factory node output))
   ([output-factory node output]
-  (let [^XMLEventWriter ew (dx.io/event-writer output-factory output)]
-    (binding [dx.name/*gen-prefix-counter* 0]
-      (doseq [event (dx.event/->events node)]
-        (.add ew event))))
+   (let [^XMLEventWriter ew (dx.io/event-writer output-factory output)]
+     (binding [dx.name/*gen-prefix-counter* 0]
+       (doseq [event (dx.tree/tree->events node)]
+         (.add ew ^XMLEvent event))))
    node))
 
 (defn emit-str
