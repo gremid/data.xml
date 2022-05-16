@@ -2,7 +2,9 @@
   (:require
    [gremid.data.xml.event :as dx.event]
    [gremid.data.xml.node :as dx.node]
-   [gremid.data.xml.pu-map :as dx.pu]))
+   [gremid.data.xml.nss :as dx.nss])
+  (:import
+   (javax.xml.stream.events Namespace XMLEvent)))
 
 (defn chars-node->str
   [{:keys [tag] :as node}]
@@ -18,6 +20,14 @@
      :content (list node)}
     node))
 
+(defn child-nss
+  [nss ^XMLEvent event]
+  (reduce
+   (fn [nss ^Namespace ns]
+     (dx.nss/assoc' nss (.getPrefix ns) (.getNamespaceURI ns)))
+   nss
+   (when (.isStartElement event) (iterator-seq (.getNamespaces event)))))
+
 (defn events->tree'
   [events nss]
   (lazy-seq
@@ -29,8 +39,7 @@
                node   (dx.node/event->node event)
                node   (chars-node->str node)
                obj?   (map? node)
-               nss'   (cond-> nss
-                        start? (dx.pu/child-nss event))
+               nss'   (child-nss nss event)
                tree   (events->tree' more nss')
                node   (cond-> node
                         obj?   (with-meta (dx.event/->metadata event nss'))
@@ -43,11 +52,11 @@
 
 (defn events->tree
   [events]
-  (ffirst (events->tree' events dx.pu/EMPTY)))
+  (ffirst (events->tree' events dx.nss/EMPTY)))
 
 (defn tree->events
   ([node]
-   (tree->events node dx.pu/EMPTY))
+   (tree->events node dx.nss/EMPTY))
   ([node ns-env]
    (let [node        (str->chars-node node)
          [start end ns-env'] (dx.event/->objs node ns-env)]

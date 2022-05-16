@@ -5,7 +5,7 @@
    [gremid.data.xml :as dx]
    [gremid.data.xml.name :as dx.name]
    [gremid.data.xml.node :refer [cdata document element xml-comment doc-element]]
-   [gremid.data.xml.pu-map :as dx.pu]
+   [gremid.data.xml.nss :as dx.nss]
    [gremid.data.xml.util :refer [emit-fragment-str parse-str]]
    [clojure.test :refer [deftest is testing]]))
 
@@ -107,7 +107,7 @@
 
 (deftest test-default-xmlns
   (let [nss-meta (comp :gremid.data.xml/nss meta)]
-    (is (= (dx.pu/merge-prefix-map nil {"" "NS"})
+    (is (= (dx.nss/assoc' dx.nss/EMPTY "" "NS")
            (nss-meta (doc-element (dx/parse "<foo xmlns=\"NS\"/>")))
            (nss-meta (doc-element (dx/parse (dx/emit-str (dx/parse "<foo xmlns=\"NS\"/>"))))))))
   (is (thrown? Exception (dx/emit-str {:tag :el :attrs {(dx.name/qname dx.name/xmlns-uri "xml")   "foo"}})))

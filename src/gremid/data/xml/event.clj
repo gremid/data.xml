@@ -2,7 +2,7 @@
   (:require
    [clojure.string :as str]
    [gremid.data.xml.name :as dx.name]
-   [gremid.data.xml.pu-map :as dx.pu])
+   [gremid.data.xml.nss :as dx.nss])
   (:import (javax.xml.namespace QName)
            (javax.xml.stream.events XMLEvent)
            (org.codehaus.stax2.evt XMLEventFactory2)))
@@ -67,32 +67,28 @@
 (defmethod ->objs :-default
   [{:keys [tag attrs] :as node} ns-env]
   (when tag
-    (let [uri         (dx.name/qname-uri tag)
+    (let [attrs       (dx.name/separate-xmlns attrs)
+          xmlns-attrs (first attrs)
+          attrs       (second attrs)
+          ns-env'     (dx.nss/compute ns-env node xmlns-attrs attrs)
+          uri         (dx.name/qname-uri tag)
           local       (dx.name/qname-local tag)
-          attrs'      (dx.name/separate-xmlns attrs)
-          attrs       (first attrs')
-          xmlns-attrs (second attrs')
-          el-ns-env   (get (meta node) :gremid.data.xml/nss dx.pu/EMPTY)
-          el-ns-env   (dx.pu/merge-prefix-map el-ns-env xmlns-attrs)
-          attr-uris   (map dx.name/qname-uri (keys attrs))
-          ns-env'     (dx.pu/compute ns-env el-ns-env attr-uris uri local)
-          prefix      (dx.pu/get-prefix ns-env' uri)
+          prefix      (dx.nss/get-prefix ns-env' uri)
           el-name     (if prefix (QName. uri local prefix) (QName. local))
           attributes  (for [[k v] attrs]
                         (let [uri   (dx.name/qname-uri k)
                               local (dx.name/qname-local k)]
                           (if (str/blank? uri)
                             (.createAttribute ef local v)
-                            (.createAttribute ef (dx.pu/get-prefix ns-env' uri)
+                            (.createAttribute ef (dx.nss/get-prefix ns-env' uri)
                                               uri local v))))
-          namespaces  (dx.pu/reduce-diff
-                       (fn [nss prefix uri]
-                         (conj
-                          nss
-                          (if (str/blank? prefix)
-                            (.createNamespace ef uri)
-                            (.createNamespace ef prefix uri))))
-                       [] ns-env ns-env')]
+          namespaces  (into []
+                            (map
+                             (fn [[prefix uri]]
+                               (if (str/blank? prefix)
+                                 (.createNamespace ef uri)
+                                 (.createNamespace ef prefix uri))))
+                            (dx.nss/diff ns-env ns-env'))]
       [(.createStartElement ef el-name (.iterator ^Iterable attributes)
                             (.iterator ^Iterable namespaces))
        (.createEndElement ef el-name (.iterator ^Iterable namespaces))

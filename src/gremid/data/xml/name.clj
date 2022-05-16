@@ -133,7 +133,7 @@
           (recur (assoc! attrs* qn val)
                  xmlns*
                  (next attrs'))))
-      [(persistent! attrs*) (persistent! xmlns*)])))
+      [(persistent! xmlns*) (persistent! attrs*)])))
 
 
 (def ^:private ^"[C" prefix-alphabet

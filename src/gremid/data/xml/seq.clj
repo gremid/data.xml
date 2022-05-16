@@ -1,7 +1,7 @@
 (ns gremid.data.xml.seq
   (:require [gremid.data.xml.event :as dx.event]
             [gremid.data.xml.node :as dx.node]
-            [gremid.data.xml.pu-map :as dx.pu]))
+            [gremid.data.xml.nss :as dx.nss]))
 
 (defn ctx-xf*
   "Create stateful transducers based on a stack representing the (nesting) XML
@@ -27,7 +27,7 @@
 
 (defn event->data
   [parent event]
-  (let [nss (or (some-> parent :gremid.data.xml/nss) dx.pu/EMPTY)]
+  (let [nss (or (some-> parent :gremid.data.xml/nss) dx.nss/EMPTY)]
     (merge (dx.node/event->node event)
            (dx.event/->metadata event nss))))
 
