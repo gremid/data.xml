@@ -2,7 +2,7 @@
   (:require
    [gremid.data.xml.event :as dx.event]
    [gremid.data.xml.node :as dx.node]
-   [gremid.data.xml.nss :as dx.nss]))
+   [gremid.data.xml.name :as dx.name]))
 
 (defn chars-node->str
   [{:keys [tag] :as node}]
@@ -19,7 +19,7 @@
     node))
 
 (defn events->tree'
-  [events parent-nss]
+  [events parent-ns-ctx]
   (lazy-seq
    (when-let [[event] (seq events)]
      (let [more (rest events)]
@@ -29,29 +29,29 @@
                node   (dx.node/event->node event)
                node   (chars-node->str node)
                obj?   (map? node)
-               nss    (dx.nss/child-nss parent-nss event)
-               tree   (events->tree' more nss)
+               ns-ctx    (dx.name/child-ns-ctx parent-ns-ctx event)
+               tree   (events->tree' more ns-ctx)
                node   (cond-> node
-                        obj?   (with-meta (dx.event/->metadata event nss))
+                        obj?   (with-meta (dx.event/->metadata event ns-ctx))
                         start? (assoc :content (lazy-seq (first tree))))
                tree'  (if start?
-                        (events->tree' (lazy-seq (rest tree)) nss)
+                        (events->tree' (lazy-seq (rest tree)) ns-ctx)
                         tree)]
            (cons (cons node (lazy-seq (first tree')))
                  (lazy-seq (rest tree')))))))))
 
 (defn events->tree
   [events]
-  (ffirst (events->tree' events dx.nss/EMPTY)))
+  (ffirst (events->tree' events dx.name/initial-ns-ctx)))
 
 (defn tree->events
   ([node]
-   (tree->events node dx.nss/EMPTY))
-  ([node parent-nss]
+   (tree->events node dx.name/initial-ns-ctx))
+  ([node parent-ns-ctx]
    (let [node             (str->chars-node node)
-         [start end nss] (dx.event/->objs node parent-nss)]
+         [start end ns-ctx] (dx.event/->objs node parent-ns-ctx)]
      (when start
        (lazy-cat
         [start]
-        (mapcat #(tree->events % nss) (when end (:content node)))
+        (mapcat #(tree->events % ns-ctx) (when end (:content node)))
         (some-> end list))))))

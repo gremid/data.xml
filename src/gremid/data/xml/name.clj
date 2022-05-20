@@ -1,10 +1,33 @@
 (ns gremid.data.xml.name
   (:require
-   [clojure.string :as str])
+   [clojure.string :as str]
+   [clojure.tools.logging :as log])
   (:import
    (clojure.lang Keyword Namespace)
    (java.net URLDecoder URLEncoder)
-   (javax.xml.namespace QName)))
+   (javax.xml.namespace QName)
+   (javax.xml.stream.events XMLEvent)))
+
+(def xmlns-uri
+  "http://www.w3.org/2000/xmlns/")
+
+(def xml-uri
+  "http://www.w3.org/XML/1998/namespace")
+
+(def initial-ns-ctx
+  {"xml"   xml-uri
+   "xmlns" xmlns-uri})
+
+(defn legal-xmlns-binding!
+  [prefix uri]
+  (when (not= (= "xml" prefix) (= xml-uri uri))
+    (throw (ex-info
+            (str "The xmlns binding for prefix `xml` is fixed to `" xml-uri "`")
+            {:attempted-mapping {:prefix prefix :uri uri}})))
+  (when (not= (= "xmlns" prefix) (= xmlns-uri uri))
+    (throw (ex-info
+            (str "The xmlns binding for prefix `xmlns` is fixed to `" xmlns-uri "`")
+            {:attempted-mapping {:prefix prefix :uri uri}}))))
 
 (def ^QName parse-qname
   (memoize (fn [s] (QName/valueOf s))))
@@ -60,15 +83,6 @@
     (keyword? ns)            (name ns)
     :else                    (str ns)))
 
-;; xmlns attributes get special treatment. they go into metadata, don't
-;; contribute to equality
-(def xmlns-uri
-  "http://www.w3.org/2000/xmlns/")
-
-;; TODO find out if xml prefixed names need any special treatment too
-(def xml-uri
-  "http://www.w3.org/XML/1998/namespace")
-
 (extend-protocol AsQName
   Keyword
   (qname-local [kw] (name kw))
@@ -105,17 +119,6 @@
             (throw (ex-info "Not an xmlns-attr name" {:qname qn})))
           (qname-local qn)))))
 
-(defn legal-xmlns-binding!
-  [prefix uri]
-  (when (not= (= "xml" prefix) (= xml-uri uri))
-    (throw (ex-info
-            (str "The xmlns binding for prefix `xml` is fixed to `" xml-uri "`")
-            {:attempted-mapping {:prefix prefix :uri uri}})))
-  (when (not= (= "xmlns" prefix) (= xmlns-uri uri))
-    (throw (ex-info
-            (str "The xmlns binding for prefix `xmlns` is fixed to `" xmlns-uri "`")
-            {:attempted-mapping {:prefix prefix :uri uri}}))))
-
 (defn separate-xmlns
   "Separates xmlns attributes from other attributes"
   [attrs]
@@ -135,6 +138,26 @@
                  (next attrs'))))
       [(persistent! xmlns*) (persistent! attrs*)])))
 
+;; # Namespace prefix/URI mapping
+
+(defn assoc'
+  [ns-ctx prefix uri]
+  (legal-xmlns-binding! prefix uri)
+  (if (str/blank? uri) (dissoc ns-ctx prefix) (assoc ns-ctx prefix uri)))
+
+(defn get-prefixes
+  [ns-ctx uri]
+  (seq (for [[p uri'] ns-ctx :when (= uri uri')] p)))
+
+(defn get-prefix
+  [ns-ctx uri]
+  (first (get-prefixes ns-ctx uri)))
+
+(defn diff
+  [ns-ctx1 ns-ctx2]
+  (concat
+   (map (fn [[p _]] [p ""]) (remove (comp ns-ctx2 first) ns-ctx1))
+   (remove (fn [[p u]] (= u (ns-ctx1 p))) ns-ctx2)))
 
 (def ^:private ^"[C" prefix-alphabet
   (char-array (map char (range (int \a) (inc (int \z))))))
@@ -143,13 +166,13 @@
   "Thread local counter for a single document"
   0)
 
-(defn gen-prefix
+(defn gen-prefix'
   "Generates an xml prefix. Zero-arity can only be called, when
   *gen-prefix-counter* is bound and will increment it."
   ([]
    (let [c *gen-prefix-counter*]
      (set! *gen-prefix-counter* (inc c))
-     (gen-prefix c)))
+     (gen-prefix' c)))
   ([n]
    (let [cnt (alength prefix-alphabet)
          sb  (StringBuilder.)]
@@ -160,3 +183,50 @@
          (if (pos? n**)
            (recur n**)
            (str sb)))))))
+
+(defn gen-prefix
+  [ns-ctx uri suggested]
+  (or (get-prefix ns-ctx uri)
+      (loop [prefix (or suggested (gen-prefix'))]
+        (if (get ns-ctx prefix)
+          (recur (gen-prefix'))
+          prefix))))
+
+(defn compute
+  [ns-ctx {:keys [tag] :as node} xmlns-attrs attrs]
+  (let [el-ns-ctx (reduce
+                   (fn [ns-ctx [prefix uri]] (assoc' ns-ctx prefix uri))
+                   (get (meta node) :gremid.data.xml/ns-ctx initial-ns-ctx)
+                   xmlns-attrs)
+        ;; add namespaces from current environment
+        ns-ctx    (reduce
+                   (fn [ns-ctx [ns-attr uri]]
+                     (assoc' ns-ctx (gen-prefix ns-ctx uri ns-attr) uri))
+                   ns-ctx
+                   el-ns-ctx)
+        ;; add implicit namespaces used by tag, attrs
+        uri       (qname-uri tag)
+        local     (qname-local tag)
+        attr-uris (map qname-uri (keys attrs))
+        ns-ctx    (reduce
+                   (fn [ns-ctx uri] (assoc' ns-ctx (gen-prefix ns-ctx uri nil) uri))
+                   ns-ctx
+                   (cond->> attr-uris (not-empty uri) (cons uri)))]
+    ;; rename default namespace, if tag is global (not in a namespace)
+    (if-let [uri (and (str/blank? uri) (get ns-ctx ""))]
+      (let [ns-ctx (assoc' ns-ctx "" "")
+            ns-ctx (assoc' ns-ctx (gen-prefix ns-ctx uri nil) uri)]
+        (log/tracef (str "Default `xmlns=\"%s\"` had to be replaced "
+                         "with a `xmlns=\"\"` because of global "
+                         "element `%s`")
+                    uri local)
+        ns-ctx)
+      ns-ctx)))
+
+(defn child-ns-ctx
+  [ns-ctx ^XMLEvent event]
+  (reduce
+   (fn [ns-ctx ^javax.xml.stream.events.Namespace ns]
+     (assoc' ns-ctx (.getPrefix ns) (.getNamespaceURI ns)))
+   ns-ctx
+   (when (.isStartElement event) (iterator-seq (.getNamespaces event)))))
