@@ -35,52 +35,55 @@
   :default :-default)
 
 (defmethod ->objs :-chars
-  [{[fchild] :content} ns-env]
-  [(.createCharacters ef fchild) nil ns-env])
+  [{[fchild] :content} parent-nss]
+  [(.createCharacters ef fchild) nil parent-nss])
 
 (defmethod ->objs :-cdata
-  [{[fchild] :content} ns-env]
-  [(.createCData ef fchild) nil ns-env])
+  [{[fchild] :content} parent-nss]
+  [(.createCData ef fchild) nil parent-nss])
 
 (defmethod ->objs :-comment
-  [{[fchild] :content} ns-env]
-  [(.createComment ef fchild) nil ns-env])
+  [{[fchild] :content} parent-nss]
+  [(.createComment ef fchild) nil parent-nss])
 
 (defmethod ->objs :-dtd
-  [{[fchild] :content} ns-env]
-  [(.createDTD ef fchild) nil ns-env])
+  [{[fchild] :content} parent-nss]
+  [(.createDTD ef fchild) nil parent-nss])
 
 (defmethod ->objs :-pi
-  [{{:keys [target data]} :attrs} ns-env]
-  [(.createProcessingInstruction ef target data) nil ns-env])
+  [{{:keys [target data]} :attrs} parent-nss]
+  [(.createProcessingInstruction ef target data) nil parent-nss])
 
 (defmethod ->objs :-document
-  [{{:keys [encoding standalone]} :attrs} ns-env]
+  [{{:keys [encoding standalone]} :attrs} parent-nss]
   [(if (nil? standalone)
      (if (nil? encoding)
        (.createStartDocument ef)
        (.createStartDocument ef encoding))
      (.createStartDocument ef (or encoding "UTF-8") "1.0" standalone))
    (.createEndDocument ef)
-   ns-env])
+   parent-nss])
 
 (defmethod ->objs :-default
-  [{:keys [tag attrs] :as node} ns-env]
-  (when tag
-    (let [attrs       (dx.name/separate-xmlns attrs)
+  [node parent-nss]
+  (when-let [tag (:tag node)]
+    (let [attrs       (dx.name/separate-xmlns (:attrs node))
           xmlns-attrs (first attrs)
           attrs       (second attrs)
-          ns-env'     (dx.nss/compute ns-env node xmlns-attrs attrs)
+          nss         (or (:gremid.data.xml/nss node)
+                          (:gremid.data.xml/nss (meta node))
+                          parent-nss)
+          nss         (dx.nss/compute nss node xmlns-attrs attrs)
           uri         (dx.name/qname-uri tag)
           local       (dx.name/qname-local tag)
-          prefix      (dx.nss/get-prefix ns-env' uri)
+          prefix      (dx.nss/get-prefix nss uri)
           el-name     (if prefix (QName. uri local prefix) (QName. local))
           attributes  (for [[k v] attrs]
                         (let [uri   (dx.name/qname-uri k)
                               local (dx.name/qname-local k)]
                           (if (str/blank? uri)
                             (.createAttribute ef local v)
-                            (.createAttribute ef (dx.nss/get-prefix ns-env' uri)
+                            (.createAttribute ef (dx.nss/get-prefix nss uri)
                                               uri local v))))
           namespaces  (into []
                             (map
@@ -88,8 +91,8 @@
                                (if (str/blank? prefix)
                                  (.createNamespace ef uri)
                                  (.createNamespace ef prefix uri))))
-                            (dx.nss/diff ns-env ns-env'))]
+                            (dx.nss/diff parent-nss nss))]
       [(.createStartElement ef el-name (.iterator ^Iterable attributes)
                             (.iterator ^Iterable namespaces))
        (.createEndElement ef el-name (.iterator ^Iterable namespaces))
-       ns-env'])))
+       nss])))

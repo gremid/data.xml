@@ -27,7 +27,8 @@
 
 (defn event->data
   [parent event]
-  (let [nss (or (some-> parent :gremid.data.xml/nss) dx.nss/EMPTY)]
+  (let [parent-nss (or (some-> parent :gremid.data.xml/nss) dx.nss/EMPTY)
+        nss        (dx.nss/child-nss parent-nss event)]
     (merge (dx.node/event->node event)
            (dx.event/->metadata event nss))))
 
@@ -71,16 +72,13 @@
   (ctx-xf*
    :gremid.data.xml/start?
    :gremid.data.xml/end?
-   (fn [[_ _ parent-ns-env :as parent] node]
-     (let [ns-env (or (:gremid.data.xml/nss node)
-                      (when parent parent-ns-env)
-                      dx.nss/EMPTY)]
-       (dx.event/->objs node ns-env)))
-   (fn [[[start-event end-event ns-env]] node]
+   (fn [[[_ _ parent-nss]] node]
+     (dx.event/->objs node (or parent-nss dx.nss/EMPTY)))
+   (fn [[[start-event end-event nss]] node]
      (cond
        (:gremid.data.xml/start? node) start-event
        (:gremid.data.xml/end?   node) end-event
-       :else                          (first (dx.event/->objs node ns-env))))))
+       :else                          (first (dx.event/->objs node nss))))))
 
 (defn seq->events
   [events]

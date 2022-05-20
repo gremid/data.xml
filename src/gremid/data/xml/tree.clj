@@ -2,9 +2,7 @@
   (:require
    [gremid.data.xml.event :as dx.event]
    [gremid.data.xml.node :as dx.node]
-   [gremid.data.xml.nss :as dx.nss])
-  (:import
-   (javax.xml.stream.events Namespace XMLEvent)))
+   [gremid.data.xml.nss :as dx.nss]))
 
 (defn chars-node->str
   [{:keys [tag] :as node}]
@@ -20,16 +18,8 @@
      :content (list node)}
     node))
 
-(defn child-nss
-  [nss ^XMLEvent event]
-  (reduce
-   (fn [nss ^Namespace ns]
-     (dx.nss/assoc' nss (.getPrefix ns) (.getNamespaceURI ns)))
-   nss
-   (when (.isStartElement event) (iterator-seq (.getNamespaces event)))))
-
 (defn events->tree'
-  [events nss]
+  [events parent-nss]
   (lazy-seq
    (when-let [[event] (seq events)]
      (let [more (rest events)]
@@ -39,13 +29,13 @@
                node   (dx.node/event->node event)
                node   (chars-node->str node)
                obj?   (map? node)
-               nss'   (child-nss nss event)
-               tree   (events->tree' more nss')
+               nss    (dx.nss/child-nss parent-nss event)
+               tree   (events->tree' more nss)
                node   (cond-> node
-                        obj?   (with-meta (dx.event/->metadata event nss'))
+                        obj?   (with-meta (dx.event/->metadata event nss))
                         start? (assoc :content (lazy-seq (first tree))))
                tree'  (if start?
-                        (events->tree' (lazy-seq (rest tree)) nss')
+                        (events->tree' (lazy-seq (rest tree)) nss)
                         tree)]
            (cons (cons node (lazy-seq (first tree')))
                  (lazy-seq (rest tree')))))))))
@@ -57,11 +47,11 @@
 (defn tree->events
   ([node]
    (tree->events node dx.nss/EMPTY))
-  ([node ns-env]
-   (let [node        (str->chars-node node)
-         [start end ns-env'] (dx.event/->objs node ns-env)]
+  ([node parent-nss]
+   (let [node             (str->chars-node node)
+         [start end nss] (dx.event/->objs node parent-nss)]
      (when start
        (lazy-cat
         [start]
-        (mapcat #(tree->events % ns-env') (when end (:content node)))
+        (mapcat #(tree->events % nss) (when end (:content node)))
         (some-> end list))))))

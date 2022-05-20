@@ -3,7 +3,9 @@
   (:require
    [clojure.string :as str]
    [clojure.tools.logging :as log]
-   [gremid.data.xml.name :as dx.name]))
+   [gremid.data.xml.name :as dx.name])
+  (:import
+   (javax.xml.stream.events Namespace XMLEvent)))
 
 (def EMPTY
   {"xml"   dx.name/xml-uri
@@ -60,9 +62,16 @@
     (if-let [uri (and (str/blank? uri) (get pm ""))]
       (let [pm (assoc' pm "" "")
             pm (assoc' pm (compute-prefix pm uri nil) uri)]
-        (log/debugf (str "Default `xmlns=\"%s\"` had to be replaced "
+        (log/tracef (str "Default `xmlns=\"%s\"` had to be replaced "
                          "with a `xmlns=\"\"` because of global "
                          "element `%s`")
                     uri local)
         pm)
       pm)))
+
+(defn child-nss
+  [nss ^XMLEvent event]
+  (reduce
+   (fn [nss ^Namespace ns] (assoc' nss (.getPrefix ns) (.getNamespaceURI ns)))
+   nss
+   (when (.isStartElement event) (iterator-seq (.getNamespaces event)))))

@@ -110,9 +110,11 @@
       (is (= {:line-number 1 :column-number 1 :character-offset 0} location)))))
 
 (deftest test-ignorable-whitespace
-  ;; FIXME implement clojure.lang.MapEquivalence for records
-  (clojure.lang.APersistentMap/mapEquals
-   (dx/parse "<?xml version=\"1.0\"?>
+  ;; FIXME Implement removal of ignorable whitespace
+  (is
+   (not=
+    (doc-element
+     (dx/parse "<?xml version=\"1.0\"?>
 <!DOCTYPE methodCall [
   <!ELEMENT methodCall (methodName, params)>
   <!ELEMENT params (param+)>
@@ -132,12 +134,12 @@
       </value>
     </param>
   </params>
-</methodCall>")
-   {:tag :methodCall, :attrs {}, :content
-    [{:tag :methodName, :attrs {}, :content
-      ["lookupSymbol"]}
-     {:tag :params, :attrs {}, :content
-      [{:tag :param, :attrs {}, :content
-        [{:tag :value, :attrs {}, :content
-          [{:tag :string, :attrs {}, :content
-            ["\n          Clojure XML <3 \n        "]}]}]}]}]}))
+</methodCall>"))
+    {:tag :methodCall, :attrs {}, :content
+     [{:tag :methodName, :attrs {}, :content
+       ["lookupSymbol"]}
+      {:tag :params, :attrs {}, :content
+       [{:tag :param, :attrs {}, :content
+         [{:tag :value, :attrs {}, :content
+           [{:tag :string, :attrs {}, :content
+             ["\n          Clojure XML <3 \n        "]}]}]}]}]})))

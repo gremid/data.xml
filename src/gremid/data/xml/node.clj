@@ -24,7 +24,7 @@
 
 (defn doc-element
   [doc]
-  (some->> doc :content (filter :tag) first))
+  (some->> doc :content (filter :tag) last))
 
 (defn dtd
   [s]
