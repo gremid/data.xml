@@ -8,5 +8,12 @@
 (def str->seq
   (comp dx/->seq test-stream))
 
+(def seq->str
+  (comp dx/stream-str (partial remove (comp #{:-document} :tag))))
+
 (deftest events-with-tags
   (is (every? :tag (str->seq "<?test?><root><a>b</a><c/></root>"))))
+
+(deftest roundtripping
+  (let [xml "<?test?><root><a>b</a><c/></root>"]
+    (is (= xml (-> xml str->seq seq->str)))))

@@ -62,13 +62,6 @@
         "Cannot have multiple root elements; try creating a fragment instead")))
     root))
 
-(defn ->seq
-  "Parses an XML input source into a (lazy) seq of XML events."
-  ([input]
-   (->seq dx.io/round-tripping-input-factory input))
-  ([input-factory input]
-   (dx.seq/->seq (iterator-seq (dx.io/event-reader input-factory input)))))
-
 (defn parse
   "Parses an XML input source into a a tree of nodes.
 
@@ -126,3 +119,30 @@
   ([node]
    (with-out-str
      (indent node *out*))))
+
+(defn ->seq
+  "Parses an XML input source into a (lazy) seq of XML events."
+  ([input]
+   (->seq dx.io/round-tripping-input-factory input))
+  ([input-factory input]
+   (dx.seq/->seq (iterator-seq (dx.io/event-reader input-factory input)))))
+
+(defn stream
+  "Streams the given event sequence as XML text to the output."
+  ([events output]
+   (stream dx.io/conforming-output-factory events output))
+  ([output-factory events output]
+   (let [^XMLEventWriter ew (dx.io/event-writer output-factory output)]
+     (binding [dx.name/*gen-prefix-counter* 0]
+       (doseq [event (dx.seq/seq->events events)]
+         (.add ew ^XMLEvent event)))
+     (.flush ew))))
+
+(defn stream-str
+  "Streams the given event sequence to an XML text string."
+  ([events]
+   (with-out-str
+     (stream events *out*)))
+  ([output-factory events]
+   (with-out-str
+     (stream output-factory events *out*))))

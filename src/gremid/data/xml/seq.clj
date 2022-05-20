@@ -66,3 +66,22 @@
 (defn ->seq
   [events]
   (sequence seq-xf events))
+
+(def event-obj-xf
+  (ctx-xf*
+   :gremid.data.xml/start?
+   :gremid.data.xml/end?
+   (fn [[_ _ parent-ns-env :as parent] node]
+     (let [ns-env (or (:gremid.data.xml/nss node)
+                      (when parent parent-ns-env)
+                      dx.nss/EMPTY)]
+       (dx.event/->objs node ns-env)))
+   (fn [[[start-event end-event ns-env]] node]
+     (cond
+       (:gremid.data.xml/start? node) start-event
+       (:gremid.data.xml/end?   node) end-event
+       :else                          (first (dx.event/->objs node ns-env))))))
+
+(defn seq->events
+  [events]
+  (sequence event-obj-xf events))
