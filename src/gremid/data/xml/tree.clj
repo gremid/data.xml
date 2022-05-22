@@ -1,57 +1,53 @@
 (ns gremid.data.xml.tree
   (:require
-   [gremid.data.xml.event :as dx.event]
-   [gremid.data.xml.node :as dx.node]
-   [gremid.data.xml.name :as dx.name]))
+   [gremid.data.xml.node :refer [container?]]))
 
-(defn chars-node->str
+(defn ->node
   [{:keys [tag] :as node}]
   (if (= :-chars tag)
     (-> node :content first)
-    node))
+    (with-meta
+      (select-keys node [:tag :attrs :content])
+      (reduce dissoc node [:tag :attrs :content]))))
 
-(defn str->chars-node
+(defn ->trees
+  "Returns a lazy sequence whose first element is a sequence of sub-trees and
+  whose remaining elements are events that are not siblings or descendants of
+  the initial event."
+  [vs]
+  (lazy-seq
+   (when-let [v (first (seq vs))]
+     (let [more (rest vs)]
+       (if (:gremid.data.xml/end? v)
+         (cons nil more)
+         (let [node (->node v)
+               tree (->trees more)]
+           (if (:gremid.data.xml/start? v)
+             (let [node    (assoc node :content (lazy-seq (first tree)))
+                   subtree (->trees (lazy-seq (rest tree)))]
+               (cons (cons node (lazy-seq (first subtree)))
+                     (lazy-seq (rest subtree))))
+             (cons (cons node (lazy-seq (first tree)))
+                   (lazy-seq (rest tree))))))))))
+
+(defn ->tree
+  [vs]
+  (ffirst (->trees vs)))
+
+(defn ->data
   [node]
   (if (string? node)
     {:tag     :-chars
      :attrs   {}
      :content (list node)}
-    node))
+    (merge node (select-keys (meta node) [:gremid.data.xml/ns-ctx]))))
 
-(defn events->tree'
-  [events parent-ns-ctx]
-  (lazy-seq
-   (when-let [[event] (seq events)]
-     (let [more (rest events)]
-       (if (dx.event/end? event)
-         (cons nil more)
-         (let [start? (dx.event/start? event)
-               node   (dx.node/event->node event)
-               node   (chars-node->str node)
-               obj?   (map? node)
-               ns-ctx    (dx.name/child-ns-ctx parent-ns-ctx event)
-               tree   (events->tree' more ns-ctx)
-               node   (cond-> node
-                        obj?   (with-meta (dx.event/->metadata event ns-ctx))
-                        start? (assoc :content (lazy-seq (first tree))))
-               tree'  (if start?
-                        (events->tree' (lazy-seq (rest tree)) ns-ctx)
-                        tree)]
-           (cons (cons node (lazy-seq (first tree')))
-                 (lazy-seq (rest tree')))))))))
-
-(defn events->tree
-  [events]
-  (ffirst (events->tree' events dx.name/initial-ns-ctx)))
-
-(defn tree->events
-  ([node]
-   (tree->events node dx.name/initial-ns-ctx))
-  ([node parent-ns-ctx]
-   (let [node             (str->chars-node node)
-         [start end ns-ctx] (dx.event/->objs node parent-ns-ctx)]
-     (when start
-       (lazy-cat
-        [start]
-        (mapcat #(tree->events % ns-ctx) (when end (:content node)))
-        (some-> end list))))))
+(defn ->seq
+  [node]
+  (let [event (->data node)]
+    (if (container? node)
+      (lazy-cat
+       (cons (assoc event :content (list) :gremid.data.xml/start? true)
+             (mapcat ->seq (:content event)))
+       (list (assoc event :content (list) :gremid.data.xml/end? true)))
+      (list event))))

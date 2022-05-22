@@ -1,7 +1,8 @@
 (ns gremid.data.xml.lazy-parse-test
   (:require  [clojure.test :refer [deftest is testing]]
              [clojure.java.io :as io]
-             [gremid.data.xml :as dx]))
+             [gremid.data.xml :as dx]
+             [gremid.data.xml.tree :as dx.tree]))
 
 
 (def test-document

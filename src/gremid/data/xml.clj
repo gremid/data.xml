@@ -4,8 +4,8 @@
   (:require
    [gremid.data.xml.io :as dx.io]
    [gremid.data.xml.name :as dx.name]
-   [gremid.data.xml.seq :as dx.seq]
    [gremid.data.xml.sexp :as dx.sexp]
+   [gremid.data.xml.stax :as dx.stax]
    [gremid.data.xml.tree :as dx.tree])
   (:import
    (javax.xml.stream XMLEventWriter)
@@ -62,6 +62,15 @@
         "Cannot have multiple root elements; try creating a fragment instead")))
     root))
 
+(defn ->seq
+  "Parses an XML input source into a (lazy) seq of XML events."
+  ([input]
+   (->seq dx.io/round-tripping-input-factory input))
+  ([input-factory input]
+   (dx.stax/->data
+    (iterator-seq
+     (dx.io/event-reader input-factory input)))))
+
 (defn parse
   "Parses an XML input source into a a tree of nodes.
 
@@ -70,9 +79,7 @@
   ([input]
    (parse dx.io/round-tripping-input-factory input))
   ([input-factory input]
-   (dx.tree/events->tree
-    (iterator-seq
-     (dx.io/event-reader input-factory input)))))
+   (dx.tree/->tree (->seq input-factory input))))
 
 (defn pull-all
   "Walks the given tree of nodes, eagerly realizing all descendants."
@@ -80,25 +87,40 @@
   (cond-> node
     (:content node) (update :content #(doall (map pull-all %)))))
 
+(defn stream
+  "Streams the given event sequence as XML text to the output."
+  ([events output]
+   (stream dx.io/conforming-output-factory events output))
+  ([output-factory events output]
+   (let [^XMLEventWriter ew (dx.io/event-writer output-factory output)]
+     (binding [dx.name/*gen-prefix-counter* 0]
+       (doseq [event (dx.stax/->stax-events events)]
+         (.add ew ^XMLEvent event)))
+     (.flush ew))))
+
+(defn stream-str
+  "Streams the given event sequence to an XML text string."
+  ([events]
+   (with-out-str
+     (stream events *out*)))
+  ([output-factory events]
+   (with-out-str
+     (stream output-factory events *out*))))
+
 (defn emit
   "Prints the given node tree as XML text to the output."
   ([node output]
    (emit dx.io/conforming-output-factory node output))
   ([output-factory node output]
-   (let [^XMLEventWriter ew (dx.io/event-writer output-factory output)]
-     (binding [dx.name/*gen-prefix-counter* 0]
-       (doseq [event (dx.tree/tree->events node)]
-         (.add ew ^XMLEvent event))))
+   (stream output-factory (dx.tree/->seq node) output)
    node))
 
 (defn emit-str
   "Emits the given node tree as an XML text string."
   ([node]
-   (with-out-str
-     (emit node *out*)))
+   (emit-str dx.io/conforming-output-factory node))
   ([output-factory node]
-   (with-out-str
-     (emit output-factory node *out*))))
+   (stream-str output-factory (dx.tree/->seq node))))
 
 (defn indent
   ([output-factory node output]
@@ -119,30 +141,3 @@
   ([node]
    (with-out-str
      (indent node *out*))))
-
-(defn ->seq
-  "Parses an XML input source into a (lazy) seq of XML events."
-  ([input]
-   (->seq dx.io/round-tripping-input-factory input))
-  ([input-factory input]
-   (dx.seq/->seq (iterator-seq (dx.io/event-reader input-factory input)))))
-
-(defn stream
-  "Streams the given event sequence as XML text to the output."
-  ([events output]
-   (stream dx.io/conforming-output-factory events output))
-  ([output-factory events output]
-   (let [^XMLEventWriter ew (dx.io/event-writer output-factory output)]
-     (binding [dx.name/*gen-prefix-counter* 0]
-       (doseq [event (dx.seq/seq->events events)]
-         (.add ew ^XMLEvent event)))
-     (.flush ew))))
-
-(defn stream-str
-  "Streams the given event sequence to an XML text string."
-  ([events]
-   (with-out-str
-     (stream events *out*)))
-  ([output-factory events]
-   (with-out-str
-     (stream output-factory events *out*))))

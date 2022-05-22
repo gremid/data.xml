@@ -5,7 +5,7 @@
    [gremid.data.xml :as dx]
    [gremid.data.xml.name :as dx.name]
    [gremid.data.xml.node :refer [cdata document element xml-comment doc-element]]
-   [gremid.data.xml.util :refer [emit-fragment-str parse-str]]
+   [gremid.data.xml.test-util :refer [emit-fragment-str parse-str]]
    [clojure.test :refer [deftest is testing]]))
 
 (def deep-tree

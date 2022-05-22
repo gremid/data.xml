@@ -1,8 +1,17 @@
 (ns gremid.data.xml.node
-  (:require
-   [gremid.data.xml.name :as dx.name])
-  (:import
-   (javax.xml.stream.events Attribute Characters Comment DTD EntityDeclaration EntityReference NotationDeclaration ProcessingInstruction StartDocument StartElement)))
+  (:require [clojure.string :as str]))
+
+
+(def element-tag?
+  (memoize (fn [kw] (not (str/starts-with? (name kw) "-")))))
+
+(defn element?
+  [{:keys [tag]}]
+  (when tag (element-tag? tag)))
+
+(defn container?
+  [node]
+  (or (element? node) (some-> node :tag (= :-document))))
 
 (defn document
   [& content]
@@ -24,7 +33,7 @@
 
 (defn doc-element
   [doc]
-  (some->> doc :content (filter :tag) last))
+  (some->> doc :content (filter element?) first))
 
 (defn dtd
   [s]
@@ -42,70 +51,3 @@
   [s]
   (element :-comment {} s))
 
-(defprotocol AsNode
-  (event->node [event]))
-
-(extend-protocol AsNode
-  StartDocument
-  (event->node
-    [event]
-    {:tag   :-document
-     :attrs {:encoding   (when (.encodingSet event)
-                           (.getCharacterEncodingScheme event))
-             :standalone (when (.standaloneSet event)
-                           (.isStandalone event))
-             :system-id  (.getSystemId event)}})
-
-  StartElement
-  (event->node
-    [event]
-    {:tag   (dx.name/as-qname (.getName event))
-     :attrs (persistent!
-             (reduce
-              (fn [m ^Attribute attr]
-                (assoc! m (dx.name/as-qname (.getName attr)) (.getValue attr)))
-              (transient {})
-              (iterator-seq (.getAttributes event))))})
-
-  Characters
-  (event->node
-    [event]
-    {:tag     (if (.isCData event) :-cdata :-chars)
-     :attrs   {}
-     :content (list (.getData event))})
-  Comment
-  (event->node
-    [event]
-    {:tag     :-comment
-     :attrs   {}
-     :content (list (.getText event))})
-
-  ProcessingInstruction
-  (event->node
-    [event]
-    {:tag     :-pi
-     :attrs   {:target (.getTarget event)
-               :data   (.getData event)}
-     :content (list)})
-
-  DTD
-  (event->node
-    [event]
-    {:tag     :-dtd
-     :attrs   {}
-     :content (list (.getDocumentTypeDeclaration event))})
-
-  EntityDeclaration
-  (event->node
-    [_]
-    (throw (UnsupportedOperationException.)))
-
-  EntityReference
-  (event->node
-    [_]
-    (throw (UnsupportedOperationException.)))
-
-  NotationDeclaration
-  (event->node
-    [_]
-    (throw (UnsupportedOperationException.))))

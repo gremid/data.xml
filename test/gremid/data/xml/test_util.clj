@@ -1,4 +1,4 @@
-(ns gremid.data.xml.util
+(ns gremid.data.xml.test-util
   "Tests for emit to print XML text."
   (:require
    [gremid.data.xml :as dx]

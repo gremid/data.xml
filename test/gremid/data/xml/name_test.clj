@@ -4,7 +4,7 @@
    [gremid.data.xml :as dx]
    [gremid.data.xml.name :as dx.name]
    [gremid.data.xml.node :refer [doc-element document element]]
-   [gremid.data.xml.util :refer [emit-fragment-str]]))
+   [gremid.data.xml.test-util :refer [emit-fragment-str]]))
 
 (dx/alias-uri
  :U "uri-u:"
