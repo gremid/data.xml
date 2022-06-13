@@ -1,17 +1,20 @@
 (ns gremid.data.xml.io
   (:import
    (com.ctc.wstx.api WstxOutputProperties)
-   (java.io InputStream OutputStream Reader StringReader Writer)
+   (java.io File InputStream OutputStream Reader StringReader Writer)
+   (java.net URI URL)
    (javax.xml.parsers DocumentBuilder DocumentBuilderFactory)
    (javax.xml.stream XMLEventReader XMLInputFactory XMLOutputFactory)
    (javax.xml.transform OutputKeys Result Source Transformer TransformerFactory)
    (javax.xml.transform.dom DOMResult DOMSource)
    (javax.xml.transform.stream StreamResult StreamSource)
    (org.codehaus.stax2 XMLInputFactory2 XMLOutputFactory2)
-   (org.w3c.dom Node)))
+   (org.w3c.dom Node)
+   (org.xml.sax InputSource)))
 
 (defprotocol AsSource
-  (as-source [v]))
+  (as-source [v])
+  (as-input-source [v]))
 
 (extend-protocol AsSource
   Source
@@ -20,14 +23,29 @@
   Node
   (as-source [^Node v] (DOMSource. v))
 
+  File
+  (as-source [^File v] (StreamSource. v))
+  (as-input-source [^File v] (as-input-source (.toURI v)))
+
+  URI
+  (as-source [^URI v] (StreamSource. (str v)))
+  (as-input-source [^URI v] (InputSource. (str v)))
+
+  URL
+  (as-source [^URL v] (as-source (.toURI v)))
+  (as-input-source [^URL v] (as-input-source (.toURI v)))
+
   InputStream
   (as-source [^InputStream v] (StreamSource. v))
+  (as-input-source [^InputStream v] (InputSource. v))
 
   Reader
   (as-source [^Reader v] (StreamSource. v))
+  (as-input-source [^Reader v] (InputSource. v))
 
   String
-  (as-source [^String v] (as-source (StringReader. v))))
+  (as-source [^String v] (as-source (StringReader. v)))
+  (as-input-source [^String v] (as-input-source (StringReader. v))))
 
 (defn new-input-factory
   (^XMLInputFactory2 []

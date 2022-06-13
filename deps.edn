@@ -1,6 +1,10 @@
 {:paths ["src"]
  :deps  {org.clojure/tools.logging            {:mvn/version "1.1.0"}
-         com.fasterxml.woodstox/woodstox-core {:mvn/version "6.2.7"}}
+         com.fasterxml.woodstox/woodstox-core {:mvn/version "6.2.7"}
+         org.kohsuke.rngom/rngom              {:mvn/version "20100718"}
+         org.relaxng/jing                     {:mvn/version "20181222"
+                                               :exclusions  [xml-apis/xml-apis
+                                                             net.sf.saxon/Saxon-HE]}}
  :aliases
  {:test {:extra-paths ["test"]
          :extra-deps  {lambdaisland/kaocha            {:mvn/version "1.66.1034"}
