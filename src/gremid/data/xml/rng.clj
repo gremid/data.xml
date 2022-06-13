@@ -12,19 +12,19 @@
    (str (.getName SchemaFactory) ":" XMLConstants/RELAXNG_NS_URI)
    "com.thaiopensource.relaxng.jaxp.XMLSyntaxSchemaFactory"))
 
-(defn rng-schema-factory
-  []
-  (try
-    (SchemaFactory/newInstance XMLConstants/RELAXNG_NS_URI)
-    (catch IllegalArgumentException _
-      (configure-jing-schema-factory!)
-      (SchemaFactory/newInstance XMLConstants/RELAXNG_NS_URI))))
+(def schema-factory
+  (delay
+    (try
+      (SchemaFactory/newInstance XMLConstants/RELAXNG_NS_URI)
+      (catch IllegalArgumentException _
+        (configure-jing-schema-factory!)
+        (SchemaFactory/newInstance XMLConstants/RELAXNG_NS_URI)))))
 
-(defn rng->schema
+(defn ->schema
   [rng]
-  (.newSchema (rng-schema-factory) (xml.io/as-source rng)))
+  (.newSchema @schema-factory (xml.io/as-source rng)))
 
-(defn rng->error
+(defn ->error
   "Convert a RELAX NG error to an error record map."
   [severity ^SAXParseException e]
   {:severity severity
@@ -32,11 +32,11 @@
    :column   (.getColumnNumber e)
    :message  (.getMessage e)})
 
-(defn rng-validate
+(defn validate
   [schema source]
   (let [validator     (.newValidator schema)
         errors        (transient [])
-        add-error     #(conj! errors (rng->error %1 %2))
+        add-error     #(conj! errors (->error %1 %2))
         error-handler (proxy [ErrorHandler] []
                         (error [e] (add-error :error e))
                         (fatalError [e] (add-error :fatal e))
