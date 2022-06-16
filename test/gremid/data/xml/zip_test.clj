@@ -13,3 +13,13 @@
 
 (deftest find-pagebreaks
   (is (not-empty (xml.zip/xml-> goethe-faust xml.zip/subtree ::xtei/pb))))
+
+(deftest subtree-traversal
+  (is
+   (=
+    [:a :b :c :d :e :f :g :h :i]
+    (->> [:a [:b [:c] [:d] [:e]] [:f [:g [:h]]] [:i]]
+         dx/sexp-as-element
+         zip/xml-zip
+         xml.zip/descendants'
+         (into [] (map (comp :tag zip/node)))))))

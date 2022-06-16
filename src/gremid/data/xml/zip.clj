@@ -115,10 +115,7 @@
   "Returns a query predicate that matches a node when its is a tag
   named tagname."
   [tagname]
-  (fn [loc]
-    (or (when (= tagname (:tag (zip/node loc))) (list loc))
-        (filter #(and (zip/branch? %) (= tagname (:tag (zip/node %))))
-                 (children loc)))))
+  (fn [loc] (when (= tagname (:tag (zip/node loc))) (list loc))))
 
 (defn child-tag=
   [tagname]
