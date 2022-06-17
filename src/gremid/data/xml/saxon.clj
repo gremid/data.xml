@@ -94,6 +94,9 @@
   (->xdm [v] (.wrap doc-builder v))
   (->seq [v] (->seq (->xdm v)))
 
+  XdmDestination
+  (->serializer [v] v)
+
   XdmValue
   (->xdm [v] v)
   (->seq [v] v)
@@ -124,9 +127,9 @@
      (transform stylesheet source destination)
      (.getXdmNode destination)))
   ([^XsltExecutable stylesheet source destination]
-   (let [source      (dx.io/as-source source)
+   (let [source      (->xdm source)
          destination (->serializer destination)]
-     (.. stylesheet (load30) (transform source destination)))))
+     (.. stylesheet (load30) (applyTemplates source destination)))))
 
 (defn select
   ^XdmValue [^XPathExecutable xp ctx]
