@@ -14,7 +14,7 @@
 
 (defprotocol AsSource
   (as-source ^Source [v])
-  (as-input-source ^InputSource [v]))
+  (as-input-source [v]))
 
 (extend-protocol AsSource
   Source
@@ -105,7 +105,6 @@
    (doto (.newTransformer transformer-factory)
      (.setOutputProperty OutputKeys/INDENT "yes")
      (.setOutputProperty OutputKeys/METHOD "xml")
-     (.setOutputProperty "{http://xml.apache.org/xslt}indent-amount" "2")
      ;; print newline after preamble
      (.setOutputProperty OutputKeys/DOCTYPE_PUBLIC "yes"))))
 

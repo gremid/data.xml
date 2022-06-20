@@ -91,7 +91,7 @@
 
 (deftest test-indent
   (let [nested-xml (dx/parse "<a><b><c><d>foo</d></c></b></a>")
-        expect     "<a>\n  <b>\n    <c>\n      <d>foo</d>\n    </c>\n  </b>\n</a>\n"
+        expect     "<a>\n   <b>\n      <c>\n         <d>foo</d>\n      </c>\n   </b>\n</a>\n"
         result     (dx/indent-str nested-xml)]
     (is (= expect (subs result (.indexOf result "<a>"))))))
 
