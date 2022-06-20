@@ -1,37 +1,19 @@
 (ns gremid.data.xml.saxon
   (:require
    [clojure.java.io :as io]
-   [clojure.string :as str]
-   [gremid.data.xml.io :as dx.io])
+   [gremid.data.xml.io :as dx.io]
+   [gremid.data.xml.uri :as dx.uri])
   (:import
    (java.io File InputStream OutputStream Reader StringWriter Writer)
    (java.net URI URL)
    (javax.xml.transform Source URIResolver)
-   (javax.xml.transform.stream StreamSource)
    (net.sf.saxon Configuration)
-   (net.sf.saxon.s9api DocumentBuilder Processor Serializer XdmDestination XdmValue XPathCompiler XPathExecutable XsltCompiler XsltExecutable)
+   (net.sf.saxon.s9api DocumentBuilder Processor Serializer XdmDestination XdmNode XdmValue XPathCompiler XPathExecutable XsltCompiler XsltExecutable)
    (org.w3c.dom Node NodeList)))
-
-(defn resolve-uri
-  "Resolves URIs, with support for the jar URL scheme."
-  ^URI [^URI base ^URI uri]
-  (if (= "jar" (.. base (getScheme)))
-    (let [[base-jar base-path] (str/split (str base) #"!")
-          resolved             (.. (URI. base-path) (resolve uri))]
-      (if-not (.isAbsolute resolved) (URI. (str base-jar "!" resolved)) resolved))
-    (.resolve base uri)))
-
-(def ^URIResolver uri-resolver
-  "A URI resolver with support for resources from JARs on the classpath"
-  (proxy [URIResolver] []
-    (resolve [^String href ^String base]
-      (let [base (URI. (or (not-empty base) ""))
-            href (URI. (or (not-empty href) ""))]
-        (StreamSource. (str (resolve-uri base href)))))))
 
 (def ^Configuration configuration
   (doto (Configuration.)
-    (.setURIResolver uri-resolver)))
+    (.setURIResolver ^URIResolver dx.uri/resolver)))
 
 (def ^Processor processor
   (Processor. configuration))
@@ -51,6 +33,7 @@
     xpath-compiler))
 
 (defprotocol ApiBridge
+  (->source [v])
   (->xdm [v])
   (->serializer [v])
   (->seq [v])
@@ -58,32 +41,39 @@
 
 (extend-protocol ApiBridge
   Source
+  (->source [v] v)
   (->xdm [v] (.build doc-builder v))
 
   URI
-  (->xdm [v] (->xdm (dx.io/as-source v)))
+  (->source [v] (dx.io/as-source v))
+  (->xdm [v] (->xdm (->source v)))
 
   URL
-  (->xdm [v] (->xdm (dx.io/as-source v)))
+  (->source [v] (dx.io/as-source v))
+  (->xdm [v] (->xdm (->source v)))
 
   File
+  (->source [v] (dx.io/as-source v))
   (->xdm [v] (.build doc-builder v))
   (->serializer [v] (.newSerializer processor v))
 
   InputStream
-  (->xdm [v] (->xdm (dx.io/as-source v)))
+  (->source [v] (dx.io/as-source v))
+  (->xdm [v] (->xdm (->source v)))
 
   OutputStream
   (->serializer [v] (.newSerializer processor v))
 
   Reader
-  (->xdm [v] (->xdm (dx.io/as-source v)))
+  (->source [v] (dx.io/as-source v))
+  (->xdm [v] (->xdm (->source v)))
 
   Writer
   (->serializer [v] (.newSerializer processor v))
 
   String
-  (->xdm [v] (->xdm (dx.io/as-source v)))
+  (->source [v] (dx.io/as-source v))
+  (->xdm [v] (->xdm (->source v)))
   (->serializer [v] (->serializer (io/file v)))
 
   NodeList
@@ -93,6 +83,12 @@
   Node
   (->xdm [v] (.wrap doc-builder v))
   (->seq [v] (->seq (->xdm v)))
+
+  XdmNode
+  (->source [v] (.asSource v))
+  (->xdm [v] v)
+  (->seq [v] v)
+  (->str [v] (.getStringValue v))
 
   XdmDestination
   (->serializer [v] v)
@@ -127,9 +123,9 @@
      (transform stylesheet source destination)
      (.getXdmNode destination)))
   ([^XsltExecutable stylesheet source destination]
-   (let [source      (->xdm source)
+   (let [source      (->source source)
          destination (->serializer destination)]
-     (.. stylesheet (load30) (applyTemplates source destination)))))
+     (.. stylesheet (load30) (transform source destination)))))
 
 (defn select
   ^XdmValue [^XPathExecutable xp ctx]
