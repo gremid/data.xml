@@ -29,7 +29,7 @@
              (reduce
               (fn [m ^Attribute attr]
                 (assoc! m (dx.name/as-qname (.getName attr)) (.getValue attr)))
-              (transient {})
+              (transient (array-map))
               (iterator-seq (.getAttributes event))))})
 
   Characters

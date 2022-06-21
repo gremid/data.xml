@@ -1,12 +1,13 @@
 (ns gremid.data.xml.emit-test
   "Tests for emit to print XML text."
   (:require
+   [clojure.java.io :as io]
+   [clojure.test :refer [deftest is testing]]
    [clojure.walk :refer [postwalk]]
    [gremid.data.xml :as dx]
    [gremid.data.xml.name :as dx.name]
-   [gremid.data.xml.node :refer [cdata document element xml-comment doc-element]]
-   [gremid.data.xml.test-util :refer [emit-fragment-str parse-str]]
-   [clojure.test :refer [deftest is testing]]))
+   [gremid.data.xml.node :refer [cdata doc-element document element xml-comment]]
+   [gremid.data.xml.test-util :refer [emit-fragment-str parse-str]]))
 
 (def deep-tree
   (parse-str (str "<a h=\"1\" i='2' j=\"3\">"
@@ -146,3 +147,8 @@
          "<?xml version=\"1.0\"?><element xml:foo=\"FOO!\"/>"))
   (is (thrown? Exception (dx/parse "<xmlns:el/>"))
       "TODO: find out if this is standard conforming, or a bug in StAX"))
+
+(deftest roundtrip-attribute-order
+  (let [sample (-> (io/resource "attr-order-test-doc.xml")
+                   (slurp :encoding "UTF-8"))]
+    (is (= sample (dx/emit-str (dx/parse sample))))))
