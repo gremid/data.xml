@@ -181,7 +181,7 @@
           local       (dx.name/qname-local tag)
           prefix      (dx.name/get-prefix ns-ctx uri)
           el-name     (if prefix (QName. uri local prefix) (QName. local))
-          attributes  (for [[k v] attrs]
+          attributes  (for [[k v] attrs :when (some? v)]
                         (let [uri   (dx.name/qname-uri k)
                               local (dx.name/qname-local k)]
                           (if (str/blank? uri)
