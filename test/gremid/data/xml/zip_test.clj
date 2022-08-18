@@ -23,3 +23,12 @@
          zip/xml-zip
          xml.zip/descendants'
          (into [] (map (comp :tag zip/node)))))))
+
+(deftest text-content-without-comments
+  (is
+   (=
+    "abc"
+    (->> [:xml "a" [:-comment "Test"] "bc"]
+         (dx/sexp-as-element)
+         (zip/xml-zip)
+         (xml.zip/text)))))
