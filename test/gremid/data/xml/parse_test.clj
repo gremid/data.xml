@@ -95,9 +95,9 @@
 (dx/alias-uri :xhtml "http://www.w3.org/1999/xhtml")
 
 (deftest test-parsing-doctypes
-  (let [input "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"><html><h1>Heading Stuff</h1></html>"
+  (let [input "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"><html><h1>Heading Stuff</h1></html>"
         expected (document
-                  (dtd "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\" []>")
+                  (dtd "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\" []>")
                   (element
                    ::xhtml/html {}
                    (element ::xhtml/h1 {} "Heading Stuff")))]
