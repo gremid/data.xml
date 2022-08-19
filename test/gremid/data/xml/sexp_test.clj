@@ -64,4 +64,4 @@
          (dx/sexp-as-element
           [:tag {:attr "value"}
            [:body {}
-            [:-comment "comment <stuff<here<"]]]))))
+            [:-comment {:data "comment <stuff<here<"}]]]))))

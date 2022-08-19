@@ -55,7 +55,7 @@
 (deftest doctype
   (let [input-tree                    (dx/parse "<how-cool>cool</how-cool>")
         add-dtd                       #(update input-tree :content conj
-                                               (dx/sexp-as-element [:-dtd %]))
+                                               (dx/sexp-as-element [:-dtd {:data %}]))
         doctype-html                  "<!DOCTYPE html>"
         doctype-html-401-transitional "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\">"
         doctype-xhtml-10-strict       "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">"]

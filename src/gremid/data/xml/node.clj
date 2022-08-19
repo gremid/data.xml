@@ -35,10 +35,6 @@
   [doc]
   (some->> doc :content (filter element?) first))
 
-(defn dtd
-  [s]
-  (element :-dtd {} s))
-
 (defn cdata
   [s]
   (element :-cdata {} s))
@@ -48,6 +44,10 @@
   (element :-pi {:target target :data data}))
 
 (defn xml-comment
-  [s]
-  (element :-comment {} s))
+  [data]
+  (element :-comment {:data data}))
+
+(defn dtd
+  [data]
+  (element :-dtd {:data data}))
 

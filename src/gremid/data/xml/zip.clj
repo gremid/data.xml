@@ -123,20 +123,11 @@
     (filter #(and (zip/branch? %) (= tagname (:tag (zip/node %))))
             (some-> loc children))))
 
-(defn text-content
-  "Returns the textual contents of the given node, similar to XPath's
-  value-of()."
-  [node]
-  (if (string? node)
-    node
-    (when-not (#{:-dtd :-pi :-comment} (:tag node))
-      (apply str (map text-content (:content node))))))
-
 (defn text
   "Returns the textual contents of the given location, similar to XPath's
   value-of()."
   [loc]
-  (text-content (zip/node loc)))
+  (apply str (xml-> loc descendants' zip/node string?)))
 
 (defn text=
   "Returns a query predicate that matches a node when its textual

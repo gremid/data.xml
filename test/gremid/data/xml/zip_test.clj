@@ -28,7 +28,7 @@
   (is
    (=
     "abc"
-    (->> [:xml "a" [:-comment "Test"] "bc"]
+    (->> [:xml "a" [:-comment {:data "Test"}] "bc"]
          (dx/sexp-as-element)
          (zip/xml-zip)
          (xml.zip/text)))))

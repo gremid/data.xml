@@ -39,7 +39,7 @@
   [:-document
    [::tei/text {:xmlns "http://www.tei-c.org/ns/1.0"}
     [::tei/p
-     [:-comment "CDATA and comments can be emitted"]
+     [:-comment {:data "CDATA and comments can be emitted"}]
      [:-cdata "<--"]]]]))
 ;; => "<?xml version=\"1.0\"?><text xmlns=\"http://www.tei-c.org/ns/1.0\"><p><!--CDATA and comments can be emitted--><![CDATA[<--]]></p></text>"
 

@@ -38,12 +38,13 @@
     {:tag     (if (.isCData event) :-cdata :-chars)
      :attrs   {}
      :content (list (.getData event))})
+
   Comment
   (stax->data
     [event]
     {:tag     :-comment
-     :attrs   {}
-     :content (list (.getText event))})
+     :attrs   {:data (.getText event)}
+     :content (list)})
 
   ProcessingInstruction
   (stax->data
@@ -57,8 +58,8 @@
   (stax->data
     [event]
     {:tag     :-dtd
-     :attrs   {}
-     :content (list (.getDocumentTypeDeclaration event))})
+     :attrs   {:data (.getDocumentTypeDeclaration event)}
+     :content (list)})
 
   EntityDeclaration
   (stax->data
@@ -143,12 +144,12 @@
   [(.createCData ef fchild) nil parent-ns-ctx])
 
 (defmethod data->stax :-comment
-  [{[fchild] :content} parent-ns-ctx]
-  [(.createComment ef fchild) nil parent-ns-ctx])
+  [{{:keys [data]} :attrs} parent-ns-ctx]
+  [(.createComment ef data) nil parent-ns-ctx])
 
 (defmethod data->stax :-dtd
-  [{[fchild] :content} parent-ns-ctx]
-  [(.createDTD ef fchild) nil parent-ns-ctx])
+  [{{:keys [data]} :attrs} parent-ns-ctx]
+  [(.createDTD ef data) nil parent-ns-ctx])
 
 (defmethod data->stax :-pi
   [{{:keys [target data]} :attrs} parent-ns-ctx]
