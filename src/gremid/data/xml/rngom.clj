@@ -56,9 +56,7 @@
         (onEmpty [p] (add! p))
         (onText [p] (add! p))
         (onValue [p] (add! p))
-        (onNotAllowed
-          [_]
-          (throw (IllegalStateException. "<notAllowed/> not supported")))
+        (onNotAllowed [p] (add! p))
         (onRef
           [^DRefPattern rp]
           (let [name (.getName rp)]
