@@ -6,6 +6,7 @@
    (javax.xml.namespace QName)
    (org.kohsuke.rngom.ast.util CheckingSchemaBuilder)
    (org.kohsuke.rngom.digested DAttributePattern DElementPattern DEmptyPattern DPattern DPatternWalker DRefPattern DSchemaBuilderImpl DValuePattern DXmlTokenPattern)
+   (org.kohsuke.rngom.nc NameClass NameClassWalker)
    (org.kohsuke.rngom.parse.xml SAXParseable)
    (org.xml.sax.helpers DefaultHandler)))
 
@@ -51,7 +52,10 @@
          seen-refs (transient #{})]
      (->>
       (proxy [DPatternWalker] []
-        (onXmlToken [p] (add! p) (when (descend? p) (.onUnary this p)))
+        (onXmlToken [^DXmlTokenPattern p]
+          (add! p)
+          (when (descend? p)
+            (.. p (getChild) (accept this))))
         (onData [p] (add! p))
         (onEmpty [p] (add! p))
         (onText [p] (add! p))
@@ -76,11 +80,11 @@
   (traverse start (some-fn #{start} (complement xml-token-pattern?))))
 
 (defn walk-names
-  [name-class]
+  [^NameClass name-class]
   (let [patterns (transient [])
         add!     (fn [m] (conj! patterns m) nil)]
     (->>
-     (proxy [org.kohsuke.rngom.nc.NameClassWalker] []
+     (proxy [NameClassWalker] []
        (visitName [^QName qn]
          (add! qn))
        (visitAnyName [])

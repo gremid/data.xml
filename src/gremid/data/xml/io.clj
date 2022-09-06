@@ -13,7 +13,7 @@
    (org.xml.sax InputSource)))
 
 (defprotocol AsSource
-  (as-source ^Source [v])
+  (as-source [v])
   (as-input-source [v]))
 
 (extend-protocol AsSource

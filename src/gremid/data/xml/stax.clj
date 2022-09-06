@@ -3,9 +3,11 @@
    [clojure.string :as str]
    [gremid.data.xml.name :as dx.name]
    [gremid.data.xml.xform :as dx.xf])
-  (:import (javax.xml.namespace QName)
-           (javax.xml.stream.events Attribute Characters Comment DTD EntityDeclaration EntityReference NotationDeclaration ProcessingInstruction StartDocument StartElement XMLEvent)
-           (org.codehaus.stax2.evt XMLEventFactory2)))
+  (:import
+   (javax.xml.namespace QName)
+   (javax.xml.stream XMLEventFactory)
+   (javax.xml.stream.events Attribute Characters Comment DTD EntityDeclaration EntityReference NotationDeclaration ProcessingInstruction StartDocument StartElement XMLEvent)
+   (org.codehaus.stax2.evt XMLEventFactory2)))
 
 (defprotocol AsData
   (stax->data [event]))
@@ -87,7 +89,7 @@
       (.isEndDocument event)))
 
 (defn stax->data'
-  [parent event]
+  [parent ^XMLEvent event]
   (let [parent-ns-ctx (or (some-> parent :gremid.data.xml/ns-ctx)
                           dx.name/initial-ns-ctx)
         ns-ctx        (dx.name/child-ns-ctx parent-ns-ctx event)
@@ -128,7 +130,7 @@
   [events]
   (sequence ->data-xf events))
 
-(def ef
+(def ^XMLEventFactory ef
   (XMLEventFactory2/newInstance))
 
 (defmulti data->stax
@@ -186,7 +188,7 @@
                         (let [uri   (dx.name/qname-uri k)
                               local (dx.name/qname-local k)]
                           (if (str/blank? uri)
-                            (.createAttribute ef local v)
+                            (.createAttribute ef ^String local ^String v)
                             (.createAttribute ef (dx.name/get-prefix ns-ctx uri)
                                               uri local v))))
           namespaces  (into []

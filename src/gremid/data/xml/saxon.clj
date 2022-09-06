@@ -96,7 +96,6 @@
   XdmValue
   (->xdm [v] v)
   (->seq [v] v)
-  (->str [v] (.getStringValue v))
 
   Serializer
   (->serializer [v] v))
@@ -106,12 +105,12 @@
   (.compile xslt-compiler (dx.io/as-source stylesheet)))
 
 (defn  ->xpath
-  ^XPathExecutable [xpath-compiler ^String s]
+  ^XPathExecutable [^XPathCompiler xpath-compiler ^String s]
   (.compile xpath-compiler s))
 
 (defn serialize
   ([source destination]
-   (.serializeNode (->serializer destination) (->xdm source)))
+   (.serializeNode ^Serializer (->serializer destination) (->xdm source)))
   ([source]
    (let [writer (StringWriter.)]
      (serialize source writer)

@@ -46,12 +46,12 @@
   (qname-local [s] (.getLocalPart (parse-qname s)))
   (qname-uri   [s] (.getNamespaceURI (parse-qname s))))
 
-(defn decode-uri
-  [ns]
+(defn decode-uri ^String
+  [^String ns]
   (URLDecoder/decode ns "UTF-8"))
 
-(defn encode-uri
-  [uri]
+(defn encode-uri ^String
+  [^String uri]
   (URLEncoder/encode uri "UTF-8"))
 
 (defn uri-symbol [uri]
@@ -229,4 +229,5 @@
    (fn [ns-ctx ^javax.xml.stream.events.Namespace ns]
      (assoc' ns-ctx (.getPrefix ns) (.getNamespaceURI ns)))
    ns-ctx
-   (when (.isStartElement event) (iterator-seq (.getNamespaces event)))))
+   (when (.isStartElement event)
+     (iterator-seq (.. event (asStartElement) (getNamespaces))))))

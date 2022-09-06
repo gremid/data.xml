@@ -4,7 +4,8 @@
    [gremid.data.xml.uri :as dx.uri])
   (:import
    (javax.xml XMLConstants)
-   (javax.xml.validation SchemaFactory)
+   (javax.xml.transform Source)
+   (javax.xml.validation Schema SchemaFactory)
    (org.xml.sax ErrorHandler SAXParseException)))
 
 (defn configure-jing-schema-factory!
@@ -15,17 +16,18 @@
 
 (def schema-factory
   (delay
-    (->
-     (try
-       (SchemaFactory/newInstance XMLConstants/RELAXNG_NS_URI)
-       (catch IllegalArgumentException _
-         (configure-jing-schema-factory!)
-         (SchemaFactory/newInstance XMLConstants/RELAXNG_NS_URI)))
-     (doto (.setResourceResolver dx.uri/resolver)))))
+    (let [^SchemaFactory sf
+          (try
+            (SchemaFactory/newInstance XMLConstants/RELAXNG_NS_URI)
+            (catch IllegalArgumentException _
+              (configure-jing-schema-factory!)
+              (SchemaFactory/newInstance XMLConstants/RELAXNG_NS_URI)))]
+      (doto sf
+        (.setResourceResolver dx.uri/resolver)))))
 
 (defn ->schema
   [rng]
-  (.newSchema @schema-factory (dx.io/as-source rng)))
+  (.newSchema ^SchemaFactory @schema-factory ^Source (dx.io/as-source rng)))
 
 (defn ->error
   "Convert a RELAX NG error to an error record map."
@@ -36,7 +38,7 @@
    :message  (.getMessage e)})
 
 (defn validate
-  [schema source]
+  [^Schema schema source]
   (let [validator     (.newValidator schema)
         errors        (transient [])
         add-error     #(conj! errors (->error %1 %2))
