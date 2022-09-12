@@ -15,8 +15,10 @@
   "http://www.w3.org/XML/1998/namespace")
 
 (def initial-ns-ctx
-  {"xml"   xml-uri
-   "xmlns" xmlns-uri})
+  (with-meta
+    {"xml"   xml-uri
+     "xmlns" xmlns-uri}
+    {:prefix-counter 0}))
 
 (defn legal-xmlns-binding!
   [prefix uri]
@@ -159,38 +161,41 @@
    (map (fn [[p _]] [p ""]) (remove (comp ns-ctx2 first) ns-ctx1))
    (remove (fn [[p u]] (= u (ns-ctx1 p))) ns-ctx2)))
 
-(def ^:private ^"[C" prefix-alphabet
+(def ^"[C" prefix-alphabet
   (char-array (map char (range (int \a) (inc (int \z))))))
 
-(def ^:dynamic *gen-prefix-counter*
-  "Thread local counter for a single document"
-  0)
+(def prefix-alphabet-length
+  (alength prefix-alphabet))
 
-(defn gen-prefix'
-  "Generates an xml prefix. Zero-arity can only be called, when
-  *gen-prefix-counter* is bound and will increment it."
-  ([]
-   (let [c *gen-prefix-counter*]
-     (set! *gen-prefix-counter* (inc c))
-     (gen-prefix' c)))
-  ([n]
-   (let [cnt (alength prefix-alphabet)
-         sb  (StringBuilder.)]
-     (loop [n* n]
-       (let [ch  (mod n* cnt)
-             n** (quot n* cnt)]
-         (.append sb (aget prefix-alphabet ch))
-         (if (pos? n**)
-           (recur n**)
-           (str sb)))))))
+(defn get-next-prefix
+  [ns-ctx]
+  (let [n  (-> ns-ctx meta :prefix-counter)
+        sb (StringBuilder.)]
+    (loop [n' n]
+      (let [ch  (mod n' prefix-alphabet-length)
+            n'' (quot n' prefix-alphabet-length)]
+        (.append sb (aget prefix-alphabet ch))
+        (if (pos? n'')
+          (recur n'')
+          (str sb))))))
 
 (defn gen-prefix
-  [ns-ctx uri suggested]
-  (or (get-prefix ns-ctx uri)
-      (loop [prefix (or suggested (gen-prefix'))]
-        (if (get ns-ctx prefix)
-          (recur (gen-prefix'))
-          prefix))))
+  [ns-ctx uri]
+  (loop [ns-ctx' ns-ctx]
+    (let [prefix (get-next-prefix ns-ctx')]
+      (if (get ns-ctx' prefix)
+        (recur (vary-meta ns-ctx' update :prefix-counter inc))
+        (assoc' ns-ctx' prefix uri)))))
+
+(defn ensure-prefix
+  ([ns-ctx uri]
+   (ensure-prefix ns-ctx uri nil))
+  ([ns-ctx uri prefix']
+   (cond
+     (get-prefix ns-ctx uri) ns-ctx
+     (nil? prefix')          (gen-prefix ns-ctx uri)
+     (get ns-ctx prefix')    (gen-prefix ns-ctx uri)
+     :else                   (assoc' ns-ctx prefix' uri))))
 
 (defn compute
   [ns-ctx {:keys [tag] :as node} xmlns-attrs attrs]
@@ -200,8 +205,7 @@
                    xmlns-attrs)
         ;; add namespaces from current environment
         ns-ctx    (reduce
-                   (fn [ns-ctx [ns-attr uri]]
-                     (assoc' ns-ctx (gen-prefix ns-ctx uri ns-attr) uri))
+                   (fn [ns-ctx [ns-attr uri]] (ensure-prefix ns-ctx uri ns-attr))
                    ns-ctx
                    el-ns-ctx)
         ;; add implicit namespaces used by tag, attrs
@@ -209,13 +213,13 @@
         local     (qname-local tag)
         attr-uris (map qname-uri (keys attrs))
         ns-ctx    (reduce
-                   (fn [ns-ctx uri] (assoc' ns-ctx (gen-prefix ns-ctx uri nil) uri))
+                   ensure-prefix
                    ns-ctx
                    (cond->> attr-uris (not-empty uri) (cons uri)))]
     ;; rename default namespace, if tag is global (not in a namespace)
     (if-let [uri (and (str/blank? uri) (get ns-ctx ""))]
       (let [ns-ctx (assoc' ns-ctx "" "")
-            ns-ctx (assoc' ns-ctx (gen-prefix ns-ctx uri nil) uri)]
+            ns-ctx (ensure-prefix ns-ctx uri)]
         (log/tracef (str "Default `xmlns=\"%s\"` had to be replaced "
                          "with a `xmlns=\"\"` because of global "
                          "element `%s`")

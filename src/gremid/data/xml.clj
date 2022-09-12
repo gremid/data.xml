@@ -93,9 +93,8 @@
    (stream dx.io/conforming-output-factory events output))
   ([output-factory events output]
    (let [^XMLEventWriter ew (dx.io/event-writer output-factory output)]
-     (binding [dx.name/*gen-prefix-counter* 0]
-       (doseq [event (dx.stax/->stax-events events)]
-         (.add ew ^XMLEvent event)))
+     (doseq [event (dx.stax/->stax-events events)]
+       (.add ew ^XMLEvent event))
      (.flush ew))))
 
 (defn stream-str
