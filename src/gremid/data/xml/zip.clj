@@ -71,7 +71,7 @@
 
 (defn zip-node?
   [v]
-  (some-> v meta :zip-filter/is-node?))
+  (some-> v meta :zip/branch?))
 
 (defn fixup-apply
   "Calls (pred loc), and then converts the result to the 'appropriate'
